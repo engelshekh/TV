@@ -24,6 +24,13 @@
   --good:#22c55e;
   --warn:#f2a93c;
   --bad:#ef4444;
+  /* خلفية وإطار دائرة الحالة — كل ثيم يقدر يعيد تعريفهم (الثيم النهاري بيعمل كده) */
+  --good-bg:rgba(34,197,94,.15);
+  --warn-bg:rgba(242,169,60,.15);
+  --bad-bg:rgba(239,68,68,.15);
+  --good-ring:rgba(34,197,94,.38);
+  --warn-ring:rgba(242,169,60,.42);
+  --bad-ring:rgba(239,68,68,.42);
   --gold:#d9a441;
   --blue:#4c8ef7;
   --radius:14px;
@@ -135,10 +142,11 @@ input,select{font-family:inherit;}
   display:inline-flex;align-items:center;justify-content:center;width:calc(22px*var(--font-scale));height:calc(22px*var(--font-scale));border-radius:50%;
   font-size:calc(12px*var(--font-scale));font-weight:800;flex-shrink:0;
 }
-.status.good{background:rgba(34,197,94,.15);color:var(--good);}
-.status.warn{background:rgba(242,169,60,.15);color:var(--warn);}
-.status.bad{background:rgba(239,68,68,.15);color:var(--bad);}
-.status.na{background:rgba(139,160,175,.12);color:var(--text-dim);}
+.status{border:1px solid transparent;}
+.status.good{background:var(--good-bg);color:var(--good);border-color:var(--good-ring);}
+.status.warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-ring);}
+.status.bad{background:var(--bad-bg);color:var(--bad);border-color:var(--bad-ring);}
+.status.na{background:rgba(139,160,175,.12);color:var(--text-dim);border-color:var(--border);}
 
 /* ---------- SECTION BAR ---------- */
 .section-bar{
@@ -187,7 +195,7 @@ input,select{font-family:inherit;}
 .status.bad.pulse{animation:pulseBad 3.2s ease-out infinite;}
 @keyframes pulseWarn{0%,100%{box-shadow:0 0 0 0 rgba(242,169,60,.5);}50%{box-shadow:0 0 0 5px rgba(242,169,60,0);}}
 .status.warn.pulse-warn{animation:pulseWarn 2.8s ease-out infinite;}
-.status.good.glow{box-shadow:0 0 0 2px rgba(34,197,94,.22);}
+.status.good.glow{box-shadow:0 0 0 2px var(--good-ring);}
 /* فوق المستهدف: نفس لون "ضمن المستهدف" مع فلاش أخضر خفيف */
 @keyframes pulseGood{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.45);}50%{box-shadow:0 0 0 5px rgba(34,197,94,0);}}
 .status.good.pulse-good{animation:pulseGood 2.4s ease-out infinite;}
@@ -196,10 +204,16 @@ input,select{font-family:inherit;}
   direction:ltr;unicode-bidi:isolate;display:inline-block;}
 .dev-badge .num{direction:ltr;unicode-bidi:isolate;}
 .dev-badge .star{color:#ffd94a;margin-left:3px;}
+/* فوق المستهدف: أخضر أغمق — وفي الثيم النهاري بيبقى نص أبيض على أخضر غامق */
 .dev-badge.over{background:rgba(21,128,61,.4);color:#c9f7d4;}
-.dev-badge.good{background:rgba(34,197,94,.14);color:var(--good);}
-.dev-badge.warn{background:rgba(242,169,60,.16);color:var(--warn);}
-.dev-badge.bad{background:rgba(239,68,68,.16);color:var(--bad);}
+html[data-theme="light"] .dev-badge.over{background:#12703c;color:#ffffff;}
+html[data-theme="light"] .val-exceed{color:#12703c !important;}
+html[data-theme="light"] .status.good.exceed{background:#12703c;color:#ffd94a;}
+html[data-theme="light"] .metric-table th{color:var(--text-dim);}
+html[data-theme="light"] .metric-table td{border-top-color:rgba(15,30,40,.10);}
+.dev-badge.good{background:var(--good-bg);color:var(--good);}
+.dev-badge.warn{background:var(--warn-bg);color:var(--warn);}
+.dev-badge.bad{background:var(--bad-bg);color:var(--bad);}
 .score-row{display:flex;gap:10px;align-items:center;margin-bottom:10px;}
 .score-row .field-col{flex:1;}
 .weight-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
@@ -710,8 +724,11 @@ input[type=text]{
     <input type="text" id="sheetUrl" placeholder="https://script.google.com/macros/s/xxxxxxxx/exec">
     <label class="field-label" style="margin-top:10px;">مفتاح الكتابة (WRITE_KEY):</label>
     <input type="password" id="sheetKey" placeholder="نفس القيمة الموجودة في apps-script.gs">
-    <button class="small-btn" id="sheetSyncBtn" style="width:100%;margin-top:10px;">اتصال ومزامنة الآن</button>
+    <button class="small-btn" id="sheetSyncBtn" style="width:100%;margin-top:10px;">اتصال ومزامنة الآن (اسحب البيانات من الشيت)</button>
+    <button class="small-btn ghost" id="sheetSeedBtn" style="width:100%;margin-top:8px;">ارفع البيانات المعروضة للشيت (لأول تجهيز فقط)</button>
+    <div class="hint" style="margin-top:6px;">⚠️ الزرار ده بيكتب القيم المعروضة حاليًا فوق اللي في الشيت. استخدمه <b>مرة واحدة بس</b> وانت بتجهّز شيت جديد لسه فاضي — بعد كده الشيت هو المرجع دايمًا.</div>
     <div class="hint" id="sheetStatus" style="margin-top:10px;"></div>
+    <div class="hint" id="sheetLinkState" style="margin-top:8px;line-height:1.9;"></div>
     <div class="edit-section-label" style="margin-top:18px;"><span class="dot"></span>منطقة الخطر</div>
     <div class="hint">مسح كل البيانات بيفضّي قيم المؤشرات وسجل الورديات والملخصات اليومية والشهرية من جوجل شيت. <b>مابيمسحش</b> الحسابات ولا الصلاحيات ولا الإعدادات ولا أسماء المؤشرات ولا سجل التغييرات.</div>
     <button class="small-btn danger" id="clearDataBtn" style="width:100%;margin-top:8px;">🗑 مسح كل البيانات (أدمن فقط)</button>
@@ -992,7 +1009,10 @@ const state = {
 /* ==== إعداد الاتصال بجوجل شيت ====
    الرابط ده هو الافتراضي المحفوظ داخل الملف نفسه، فهيفضل موجود حتى لو اتفتح
    الملف على أي جهاز/متصفح تاني من غير ما تحتاج تلصقه تاني. */
-const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbw0t2TLvcIIM67deru5fVmbrbbrhAby_sRwKYgglveBb6Cu56fg41f20rRM3uLqdFXM/exec';
+/* مفيش أي رابط مكتوب في الكود — الرابط بيتحط مرة واحدة من "ربط جوجل شيت"
+   وبيتخزن على الجهاز. كده أي نسخة من index.html بتبقى نظيفة وقابلة للرفع
+   على GitHub، وكل شاشة بتتربط مرة واحدة وخلاص. */
+const SHEET_API_URL = '';
 /* لو غيّرت الرابط من شاشة "ربط جوجل شيت" بيتحفظ كمان في localStorage الخاص
    بالمتصفح، وبيبقى هو الأساس بعد كده (يفضل ثابت حتى لو قفلت وفتحت الملف). */
 let lastLoginPassword = '';        // مش بيتخزن في أي مكان دائم — للذاكرة بس عشان تجديد التوكن
@@ -1008,7 +1028,7 @@ var AUDIT_KEY   = 'rl_audit_v1';
 var SNAP_KEY    = 'rl_snapshots_v1';
 var ORDER_KEY   = 'rl_card_order_v1';
 var SESSION_HOURS = 12;      // مدة الجلسة
-var IDLE_MINUTES  = 30;      // خروج تلقائي عند السكون
+var IDLE_MINUTES  = 15;      // خروج تلقائي بعد ربع ساعة سكون
 var MAX_FAILED    = 5;       // قفل مؤقت بعد 5 محاولات فاشلة
 var LOCK_MINUTES  = 5;
 var lastSyncAt = 0;          // آخر مزامنة ناجحة مع الشيت
@@ -1025,6 +1045,7 @@ var users = [];
 var session = null;
 var editingUser = null;      // اسم المستخدم اللي بيتعدّل حاليًا في شاشة المستخدمين
 var idleTimer = null;
+var idleWarnTimer = null;
 var SHIFT_ORDER = { 'الصباحية':1, 'المسائية':2, 'الليلية':3 };
 var FIELD_LABEL = { plan:'المخطط', target:'المستهدف', actual:'الفعلي', eff:'الكفاءة',
   name:'اسم المؤشر',
@@ -1729,12 +1750,18 @@ const THEMES = {
     '--teal-glow':'rgba(214,69,69,.2)', '--text':'#f7eeee', '--text-dim':'#b98f8f',
     '--gold':'#e0a83b', '--blue':'#7fb3d9'
   }},
+  /* الثيم النهاري: الوان الحالة أغمق شوية عن الافتراضي عشان تبان على الخلفية
+     البيضا (الأخضر والأصفر الفاتحين كانوا شبه مختفيين)، والحدود أوضح،
+     من غير مبالغة في التشبّع. */
   light: { name:'فاتح (نهاري)', vars:{
-    '--bg-app':'#eef2f5', '--bg-glow':'#dbe6ec', '--bg-panel':'#ffffff', '--bg-card-head':'#f4f7f9',
-    '--surface-0':'#ffffff', '--surface-1':'#f2f5f7', '--surface-2':'#e8edf0',
-    '--border':'rgba(15,30,40,.12)', '--teal':'#0c8f80', '--teal-dark':'#086a5f',
-    '--teal-glow':'rgba(12,143,128,.15)', '--text':'#0f1e28', '--text-dim':'#5b6b76',
-    '--gold':'#b5822a', '--blue':'#2d6fd1'
+    '--bg-app':'#eef2f5', '--bg-glow':'#dbe6ec', '--bg-panel':'#ffffff', '--bg-card-head':'#eef3f6',
+    '--surface-0':'#ffffff', '--surface-1':'#f2f5f7', '--surface-2':'#e6ecf0',
+    '--border':'rgba(15,30,40,.18)', '--teal':'#0b8477', '--teal-dark':'#07685d',
+    '--teal-glow':'rgba(12,143,128,.15)', '--text':'#10202b', '--text-dim':'#4a5a66',
+    '--gold':'#9a6c18', '--blue':'#1f5fc4',
+    '--good':'#157a41', '--warn':'#965e05', '--bad':'#c62828',
+    '--good-bg':'rgba(21,122,65,.13)', '--warn-bg':'rgba(150,94,5,.15)', '--bad-bg':'rgba(198,40,40,.12)',
+    '--good-ring':'rgba(21,122,65,.55)', '--warn-ring':'rgba(150,94,5,.55)', '--bad-ring':'rgba(198,40,40,.55)'
   }},
   violet: { name:'بنفسجي عصري', vars:{
     '--bg-app':'#120a1e', '--bg-glow':'#211033', '--bg-panel':'#1a1130', '--bg-card-head':'#241640',
@@ -1748,7 +1775,12 @@ const THEMES = {
 function applyTheme(key, persist){
   const theme = THEMES[key] || THEMES.teal;
   const root = document.documentElement.style;
+  /* بنفضّي متغيرات الحالة الأول عشان لو الثيم الجديد مش بيعرّفها ترجع للافتراضي
+     الموجود في :root، مش تفضل بقيم الثيم اللي قبله. */
+  ['--good','--warn','--bad','--good-bg','--warn-bg','--bad-bg','--good-ring','--warn-ring','--bad-ring']
+    .forEach(k=> root.removeProperty(k));
   Object.entries(theme.vars).forEach(([k,v])=> root.setProperty(k, v));
+  document.documentElement.setAttribute('data-theme', key);   // للتنسيقات الخاصة بثيم معيّن
   if(persist !== false) localStorage.setItem('rl_theme', key);
   document.querySelectorAll('.theme-swatch').forEach(sw=>{
     sw.classList.toggle('active', sw.dataset.theme === key);
@@ -1815,11 +1847,31 @@ document.getElementById('pdfBtn').onclick = printReport;
 /* ---- sync date ---- */
 const syncDateInput = document.getElementById('syncDate');
 /* لو فيه تاريخ متحفوظ محليًا من آخر مرة (قبل ما أي كاش أو شيت يجيب بياناته) نستخدمه كبداية */
+/* ---------- تاريخ اليوم ----------
+   اللوحة لازم تعرض تاريخ النهاردة من ساعة الجهاز، مش تاريخ محفوظ قديم ولا تاريخ
+   جاي من الشيت من يوم فات. ولو المستخدم اختار تاريخ تاني بإيده (لإدخال يوم قديم)
+   بنحترم اختياره لحد ما يقفل الصفحة أو يرجّعه لتاريخ النهاردة. */
+function todayStr(d){
+  const t = d || new Date();
+  const p2 = n=> (n < 10 ? '0' : '') + n;
+  return t.getFullYear() + '-' + p2(t.getMonth() + 1) + '-' + p2(t.getDate());
+}
+var manualDatePick = false;         // المستخدم اختار تاريخ بإيده في الجلسة دي؟
 try{
   const savedSyncDate = localStorage.getItem('rl_sync_date');
   if(savedSyncDate) state.meta.date = savedSyncDate;
 }catch(e){ /* تجاهل */ }
+if(state.meta.date !== todayStr()) state.meta.date = todayStr();
 syncDateInput.value = state.meta.date;
+/* بتتنفّذ عند التحميل وكل دقيقة: أول ما اليوم يتغيّر (نص الليل) اللوحة تتحول لتاريخ النهاردة */
+function ensureTodayDate(){
+  if(manualDatePick) return false;
+  const t = todayStr();
+  if(state.meta.date === t) return false;
+  applyDate(t);
+  try{ localStorage.setItem('rl_sync_date', t); }catch(e){ /* تجاهل */ }
+  return true;
+}
 function applyDate(dateStr){
   state.meta.date = dateStr;
   const d = new Date(dateStr + 'T00:00:00');
@@ -1827,6 +1879,7 @@ function applyDate(dateStr){
   syncDateInput.value = state.meta.date; // نخلي الحقل في لوحة التحكم متزامن دايمًا
 }
 syncDateInput.onchange = async ()=>{
+  manualDatePick = (syncDateInput.value !== todayStr());   // اختيار يدوي = نوقف التحويل التلقائي
   applyDate(syncDateInput.value);
   try{ localStorage.setItem('rl_sync_date', state.meta.date); }catch(e){ /* تجاهل لو الكاش ممتلئ */ }
   if(sheetApiUrl){
@@ -1911,15 +1964,18 @@ function applySheetData(json){
   (json.metrics || []).forEach(m=>{
     const local = allMetrics.find(x=>x.id === m.id);
     if(!local) return;
-    /* الاسم والوسام مشتركين بين نوعي المؤشرات */
+    /* الاسم مشترك بين نوعي المؤشرات (الاسم الفاضي بس هو اللي بنتجاهله عشان
+       مايختفيش عنوان الصف) */
     if(m.name !== undefined && String(m.name).trim() !== '') local.name = String(m.name).trim();
     /* عمود badge القديم في الشيت بقى بلا تأثير — الأوسمة بقت إعداد واحد للصفحة كلها */
     const isLine = ('plan' in local);
     if(isLine){
       /* مؤشرات الخطوط: الأرقام بتتخزن صافية (% وعلامة المقارنة بيتحطوا وقت العرض).
          عمود eff الجاي من الشيت بيتقرا بس للمؤشرات اللي كفاءتها يدوية. */
+      /* بنطبّق القيمة زي ما هي — والفاضي معناه فاضي فعلاً (الشيت هو المرجع) */
       if(!local.noPlan && m.target !== undefined) local.plan = cleanForInput(m.target);
       if(m.actual !== undefined) local.actual = cleanForInput(m.actual);
+      if(local.effMode === 'manual' && m.eff !== undefined) local.eff = cleanForInput(m.eff);
       if(m.pctGood !== undefined && m.pctGood !== '') local.pctGood = parseFloat(m.pctGood);
       if(m.pctWarn !== undefined && m.pctWarn !== '') local.pctWarn = parseFloat(m.pctWarn);
       if(local.effMode === 'manual' && m.eff !== undefined) local.eff = cleanForInput(m.eff);
@@ -1942,11 +1998,14 @@ function applySheetData(json){
     if(m.dir) local.dir = m.dir;
   });
   if(json.meta){
-    if(json.meta.date){
+    /* تاريخ الشيت بياخده بس لو هو تاريخ النهاردة أو لو المستخدم مختار تاريخ بإيده،
+       عشان تاريخ قديم متسجّل في الشيت مايرجّعش اللوحة بالورا. */
+    if(json.meta.date && (manualDatePick || json.meta.date === todayStr())){
       state.meta.date = json.meta.date;
       if(typeof syncDateInput !== 'undefined') syncDateInput.value = state.meta.date;
       try{ localStorage.setItem('rl_sync_date', state.meta.date); }catch(e){ /* تجاهل */ }
     }
+    ensureTodayDate();
     if(json.meta.shift) state.meta.shift = json.meta.shift;
     /* لو السكريبت بيرجّع وقت آخر تعديل، بنستخدمه عشان كل الشاشات تشوف نفس الرقم */
     if(json.meta.lastEditAt) markLastEdit(json.meta.lastEditAt);
@@ -1956,19 +2015,24 @@ function applySheetData(json){
     if(json.meta.shiftConfig){
       try{
         const sc = typeof json.meta.shiftConfig === 'string' ? JSON.parse(json.meta.shiftConfig) : json.meta.shiftConfig;
-        if(sc && typeof sc === 'object'){ shiftCfg = Object.assign(shiftCfg, sc); saveShiftCfg(false); applyAutoShift(); }
+        if(sc && typeof sc === 'object' && (Number(sc.ts) || 0) >= (Number(shiftCfg.ts) || 0)){ shiftCfg = Object.assign(shiftCfg, sc); saveShiftCfg(false); applyAutoShift(); }
       }catch(e){ /* تجاهل لو الإعداد تالف */ }
     }
     if(json.meta.safeConfig){
       try{
         const sc = typeof json.meta.safeConfig === 'string' ? JSON.parse(json.meta.safeConfig) : json.meta.safeConfig;
-        if(sc && typeof sc === 'object' && sc.anchor){ safeCfg = Object.assign(safeCfg, sc); saveSafeCfg(false); }
+        /* بناخد اللي في الشيت بس لو أحدث من اللي عندنا — عشان تعديل عملته للحظة
+           مايترجعش لما تيجي مزامنة بقيمة قديمة. */
+        if(sc && typeof sc === 'object' && sc.anchor && (Number(sc.ts) || 0) >= (Number(safeCfg.ts) || 0)){
+          safeCfg = Object.assign({}, safeCfg, sc);
+          saveSafeCfg(false);
+        }
       }catch(e){ /* تجاهل لو الإعداد تالف */ }
     }
     if(json.meta.scoreConfig){
       try{
         const cfg = typeof json.meta.scoreConfig === 'string' ? JSON.parse(json.meta.scoreConfig) : json.meta.scoreConfig;
-        if(cfg && typeof cfg === 'object'){ scoreCfg = Object.assign(scoreCfg, cfg); saveScoreCfg(false); }
+        if(cfg && typeof cfg === 'object' && (Number(cfg.ts) || 0) >= (Number(scoreCfg.ts) || 0)){ scoreCfg = Object.assign(scoreCfg, cfg); saveScoreCfg(false); }
       }catch(e){ /* تجاهل لو الإعداد تالف */ }
     }
   }
@@ -1984,6 +2048,12 @@ function applySheetData(json){
   try{ localStorage.setItem('rl_dashboard_cache', JSON.stringify(json)); }catch(e){ /* تجاهل لو الكاش ممتلئ */ }
 }
 
+/* هل الشيت رجّع صفوف مؤشرات أصلاً؟ (لو لأ يبقى السكريبت مش منشور صح أو setup ماتشغّلتش) */
+function sheetHasRows(json){
+  return !!(json && Array.isArray(json.metrics) && json.metrics.length);
+}
+var lastSheetJson = null;          // آخر رد جاي من الشيت (للتشخيص وفحص نسخة السكريبت)
+
 async function fetchFromSheet(interactive){
   if(!sheetApiUrl) return false;
   const statusEl = document.getElementById('sheetStatus');
@@ -1991,10 +2061,26 @@ async function fetchFromSheet(interactive){
   try{
     const res = await fetch(sheetApiUrl, { method:'GET' });
     const json = await res.json();
+    lastSheetJson = json;
+    /* ================== الشيت هو المصدر الوحيد للحقيقة ==================
+       بنطبّق اللي جاي من الشيت زي ما هو — حتى لو خانة فاضية. يعني لو رفعت نسخة
+       index قديمة فيها أرقام تجريبية، أول مزامنة بتمسحها وتحل مكانها بيانات الشيت.
+       الاستثناء الوحيد: لو السكريبت مارجّعش صفوف مؤشرات خالص (يعني مشكلة نشر أو
+       setup ماتشغّلتش) — ساعتها مانلمسش الشاشة وبنحذّر، لأن ده خطأ اتصال مش بيانات. */
+    if(!sheetHasRows(json)){
+      if(statusEl) statusEl.innerHTML = '<b style="color:var(--warn)">الشيت رجّع رد فاضي.</b> تأكد إنك شغّلت الدالة <b>setup</b> مرة واحدة، وإن الـ Web App منشور بآخر نسخة وبصلاحية Anyone.';
+      if(interactive) showToast('الشيت مارجّعش أي مؤشرات — راجع setup والنشر');
+      return false;
+    }
     applySheetData(json);
     lastSyncAt = Date.now();
-    if(statusEl) statusEl.textContent = 'آخر مزامنة: ' + new Date().toLocaleTimeString('ar-EG');
-    if(interactive) showToast('تمت المزامنة مع جوجل شيت');
+    if(statusEl){
+      const missing = scriptMissingFeatures(json);
+      statusEl.innerHTML = 'آخر مزامنة: ' + fmtTime(new Date()) + ' — البيانات المعروضة من جوجل شيت' +
+        (missing ? '<br><b style="color:var(--warn)">تنبيه: السكريبت المنشور نسخة قديمة (' + missing + ') — اعمل Deploy → Manage deployments → New version.</b>' : '');
+    }
+    if(interactive) showToast('تمت المزامنة — البيانات المعروضة من جوجل شيت');
+    renderAll();
     return true;
   }catch(err){
     console.error('fetchFromSheet failed:', err);
@@ -2017,6 +2103,15 @@ async function callSheet(body){
     console.error('callSheet failed:', err);
     return { ok:false, error:'network' };
   }
+}
+/* فحص نسخة السكريبت المنشور — أكتر مشكلة متكررة إن الكود اتغيّر بس النشر لأ */
+function scriptMissingFeatures(json){
+  if(!json) return '';
+  const need = ['login','clear','updateName','safeConfig'];
+  const has = Array.isArray(json.supports) ? json.supports : null;
+  if(!has) return 'مش بيرجّع قائمة العمليات';
+  const missing = need.filter(x=> has.indexOf(x) === -1);
+  return missing.length ? ('ناقص: ' + missing.join(' / ')) : '';
 }
 function describeSheetError(code){
   const map = {
@@ -2135,8 +2230,58 @@ document.getElementById('sheetSyncBtn').onclick = async ()=>{
     WRITE_KEY = key;
     try{ localStorage.setItem('rl_write_key', key); }catch(e){ /* تجاهل */ }
   }
+  await requestPersistentStorage();          // نطلب من المتصفح مايمسحش الإعدادات
   await fetchFromSheet(true);
   await serverLogin();                       // نجدّد التوكن على السيرفر بعد الربط
+  renderSheetLinkState();
+};
+
+/* ---------- ثبات الإعدادات على الجهاز ----------
+   الرابط والمفتاح بيتخزنوا في localStorage، وده بيفضل موجود بعد قفل المتصفح
+   وبعد إعادة تشغيل الجهاز. بنطلب من المتصفح كمان "تخزين دائم" عشان مايفضّيهوش
+   لو المساحة قلّت — مفيد على شاشة التلفزيون اللي شغّالة طول الوقت.
+   ⚠️ اللي بيمسح الإعدادات: تفريغ بيانات الموقع بإيدك، أو التصفح المتخفي (Incognito). */
+async function requestPersistentStorage(){
+  try{
+    if(navigator.storage && navigator.storage.persist){
+      const already = navigator.storage.persisted ? await navigator.storage.persisted() : false;
+      if(already) return true;
+      return await navigator.storage.persist();
+    }
+  }catch(e){ /* المتصفح مش بيدعمها — الإعدادات بتفضل محفوظة عادي */ }
+  return false;
+}
+/* سطر حالة صغير في شاشة الربط: متصل بأنهي شيت وهل التخزين دائم */
+async function renderSheetLinkState(){
+  const el = document.getElementById('sheetLinkState');
+  if(!el) return;
+  if(!sheetApiUrl){
+    el.innerHTML = '<b style="color:var(--warn)">مفيش شيت مربوط على الجهاز ده.</b> الصق الرابط والمفتاح واضغط "اتصال ومزامنة".';
+    return;
+  }
+  let persisted = false;
+  try{ persisted = navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : false; }catch(e){}
+  const tail = sheetApiUrl.length > 46 ? ('…' + sheetApiUrl.slice(-30)) : sheetApiUrl;
+  el.innerHTML = '<b style="color:var(--good)">الجهاز ده مربوط</b> بالشيت: <code style="direction:ltr;display:inline-block">' + tail + '</code>' +
+    '<br>المفتاح ' + (WRITE_KEY ? 'محفوظ ✓' : '<b style="color:var(--bad)">مش محفوظ ✗</b>') +
+    ' • التخزين ' + (persisted ? 'دائم ✓ (الإعدادات مش هتتمسح)' : 'عادي — بيفضل بعد قفل المتصفح، بس المتصفح ممكن يفضّيه لو المساحة قلّت');
+}
+
+/* ---------- زرع البيانات في شيت جديد فاضي ---------- */
+document.getElementById('sheetSeedBtn').onclick = async ()=>{
+  const statusEl = document.getElementById('sheetStatus');
+  if(!sheetApiUrl){ showToast('اربط الشيت الأول'); return; }
+  if(!isLoggedIn()){ showToast('سجّل دخول الأول'); return; }
+  if(!confirm('الزرار ده بيكتب القيم المعروضة على الشاشة فوق اللي في جوجل شيت.\n\nاستخدمه مرة واحدة بس وانت بتجهّز شيت جديد. تكمّل؟')) return;
+  statusEl.textContent = 'جارِ رفع البيانات المعروضة للشيت...';
+  const ok = await postToSheet();
+  if(ok){
+    statusEl.textContent = 'تم الرفع — البيانات دلوقتي في الشيت، وأي جهاز تاني هيسحبها من هناك.';
+    showToast('تم رفع البيانات للشيت');
+    await fetchFromSheet(false);
+  }else{
+    statusEl.textContent = 'تعذّر الرفع — راجع المفتاح وتأكد إنك مسجّل دخول وإن السكريبت منشور بآخر نسخة.';
+  }
 };
 
 /* ---------- مسح كل البيانات (أدمن فقط + تأكيد + تحقق على السيرفر) ---------- */
@@ -2192,18 +2337,30 @@ document.getElementById('clearConfirmBtn').onclick = async ()=>{
 };
 
 /* مزامنة أولية + فحص دوري كل 20 ثانية (يتوقف مؤقتًا لو المستخدم فاتح أي لوحة تحكم عشان ميبوظش تعديل شغال) */
+renderSheetLinkState();
 if(sheetApiUrl){
   document.getElementById('sheetUrl').value = sheetApiUrl;
   if(WRITE_KEY) document.getElementById('sheetKey').value = WRITE_KEY;
+  requestPersistentStorage();          // كل تشغيل: نتأكد إن التخزين دائم
   try{
     const cached = localStorage.getItem('rl_dashboard_cache');
     if(cached) applySheetData(JSON.parse(cached));
   }catch(e){ /* كاش تالف — تجاهله وانتظر البيانات من الشيت */ }
   fetchFromSheet(false);
 }
+/* المزامنة في الخلفية كل 30 دقيقة (كانت كل 20 ثانية).
+   البيانات بتتعدّل مرة كل وردية، فالتحديث السريع كان بياكل حصة تشغيل Apps Script
+   من غير فايدة. وأي حفظ بيتزامن فورًا لحظته، والزرار في لوحة التحكم بيزامن يدويًا. */
+var SYNC_EVERY_MS = 30 * 60 * 1000;
+/* لو الشاشة كانت مخفية (تاب تاني أو التلفزيون نام) ورجعت، بنزامن على طول
+   بدل ما نستنى باقي الـ 30 دقيقة. */
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState !== 'visible' || !sheetApiUrl || isAnyOverlayOpen()) return;
+  if(!lastSyncAt || (Date.now() - lastSyncAt) > 60000) fetchFromSheet(false);
+});
 setInterval(()=>{
   if(sheetApiUrl && !isAnyOverlayOpen()) fetchFromSheet(false);
-}, 20000);
+}, SYNC_EVERY_MS);
 
 /* ================== MANUAL EDIT TABLE ================== */
 function overrideOptions(sel){
@@ -2393,7 +2550,7 @@ document.getElementById('saveEditsBtn').onclick = async ()=>{
      وغير كدا ناخد الرقم اللي كتبه الأدمن ونثبّته على تاريخ اليوم. */
   const pickedDay = document.getElementById('editDateInput').value || state.meta.date;
   if(incidentToday()){
-    safeCfg = { base:0, anchor:pickedDay };
+    safeCfg = { base:0, anchor:pickedDay, ts:Date.now() };
     saveSafeCfg(false);
   }else if(isAdmin()){
     const sdRaw = document.getElementById('safeDaysInput').value;
@@ -2401,7 +2558,7 @@ document.getElementById('saveEditsBtn').onclick = async ()=>{
     if(String(sdRaw).trim() !== '' && !isNaN(sd) && sd >= 0){
       const shown = daysWithoutIncidents();
       if(sd !== shown || safeCfg.base === null){        // اتغيّر فعلاً؟ نثبّته من جديد
-        safeCfg = { base:sd, anchor:pickedDay };
+        safeCfg = { base:sd, anchor:pickedDay, ts:Date.now() };
         saveSafeCfg(false);
       }
     }
@@ -2566,7 +2723,12 @@ function authPayload(){
 }
 function resetIdleTimer(){
   if(idleTimer) clearTimeout(idleTimer);
+  if(idleWarnTimer) clearTimeout(idleWarnTimer);
   if(!session) return;
+  /* تنبيه قبل الخروج بدقيقة، عشان اللي بيدخل بيانات مايتفاجئش */
+  idleWarnTimer = setTimeout(()=>{
+    if(session) showToast('باقي دقيقة على الخروج التلقائي — حرّك الماوس أو اضغط أي زرار للاستمرار');
+  }, Math.max(1, IDLE_MINUTES - 1) * 60 * 1000);
   idleTimer = setTimeout(()=>{
     if(session){ logout(true); showToast('تم الخروج تلقائيًا بعد ' + IDLE_MINUTES + ' دقيقة سكون'); }
   }, IDLE_MINUTES*60*1000);
@@ -2915,6 +3077,7 @@ function loadScoreCfg(){
   }catch(e){ /* تجاهل */ }
 }
 function saveScoreCfg(push){
+  if(push) scoreCfg.ts = Date.now();
   try{ localStorage.setItem(SCORE_KEY, JSON.stringify(scoreCfg)); }catch(e){}
   if(push && sheetApiUrl && isAdmin()) postToSheet({ scoreConfig: scoreCfg });
 }
@@ -2949,16 +3112,17 @@ function factoryScore(){
    بيظهر صفر فورًا وبيتصفّر رسميًا مع الحفظ (يبدأ العد من تاريخ الحادثة).
    الإعداد بيتخزن محليًا وبيتزامن مع تبويب Meta عشان كل الشاشات تشوف نفس الرقم. */
 var SAFE_KEY = 'rl_safe_days_v1';
-var safeCfg = { base:null, anchor:'' };          // base = الرقم المكتوب، anchor = تاريخ كتابته
+var safeCfg = { base:null, anchor:'', ts:0 };    // base = الرقم المكتوب، anchor = تاريخ كتابته، ts = وقت آخر تعديل
 function loadSafeCfg(){
   try{
     const raw = JSON.parse(localStorage.getItem(SAFE_KEY) || 'null');
     if(raw && typeof raw === 'object') safeCfg = Object.assign(safeCfg, raw);
   }catch(e){ /* تجاهل */ }
 }
-function saveSafeCfg(push){
+function saveSafeCfg(push, stamp){
+  if(stamp) safeCfg.ts = Date.now();             // ختم وقت التعديل عشان مايترجعش بمزامنة قديمة
   try{ localStorage.setItem(SAFE_KEY, JSON.stringify(safeCfg)); }catch(e){}
-  if(push && sheetApiUrl && isAdmin()) postToSheet({ safeConfig: safeCfg });
+  if(push && sheetApiUrl) postToSheet({ safeConfig: safeCfg });
 }
 function daysBetween(fromDate, toDate){
   const a = new Date(fromDate + 'T00:00:00'), b = new Date(toDate + 'T00:00:00');
@@ -3032,9 +3196,13 @@ function renderHeaderChips(){
   /* النقطة: خضرا = الاتصال بجوجل شيت شغّال، صفرا = متصل بس البيانات قديمة، رمادي = مفيش شيت */
   let ledCls = '', ledTip = 'مفيش شيت متصل — الحفظ محلي بس';
   if(sheetApiUrl && lastSyncAt){
+    /* دورة المزامنة 30 دقيقة، فبنسمح بشوية سماح قبل ما نقول إن الاتصال بايت */
     const mins = Math.floor((Date.now() - lastSyncAt) / 60000);
-    ledCls = mins <= 5 ? 'live' : 'stale';
-    ledTip = mins <= 5 ? 'متصل بجوجل شيت' : ('آخر مزامنة مع الشيت منذ ' + mins + ' دقيقة');
+    const limit = Math.round(SYNC_EVERY_MS / 60000) + 5;
+    ledCls = mins <= limit ? 'live' : 'stale';
+    ledTip = mins <= limit
+      ? ('متصل بجوجل شيت — آخر مزامنة منذ ' + (mins < 1 ? 'أقل من دقيقة' : mins + ' دقيقة'))
+      : ('الاتصال بالشيت متأخر — آخر مزامنة منذ ' + mins + ' دقيقة');
   }else if(sheetApiUrl){
     ledTip = 'جارِ الاتصال بجوجل شيت...';
   }
@@ -3131,7 +3299,10 @@ async function initAuthUI(){
     const c = document.getElementById('chipClock');
     if(c) c.textContent = fmtTime(new Date());
   }, 1000);
-  setInterval(renderHeaderChips, 60000);   // تحديث "آخر تحديث منذ..." كل دقيقة
+  setInterval(()=>{                        // كل دقيقة: "آخر تحديث منذ..." + تحويل اليوم عند نص الليل
+    if(ensureTodayDate() && !isAnyOverlayOpen()) renderAll();
+    else renderHeaderChips();
+  }, 60000);
 }
 
 /* ================== مواعيد الورديات ==================
@@ -3146,6 +3317,7 @@ function loadShiftCfg(){
   }catch(e){ /* تجاهل */ }
 }
 function saveShiftCfg(push){
+  if(push) shiftCfg.ts = Date.now();
   try{ localStorage.setItem(SHIFT_KEY, JSON.stringify(shiftCfg)); }catch(e){}
   if(push && sheetApiUrl && isAdmin()) postToSheet({ shiftConfig: shiftCfg });
 }

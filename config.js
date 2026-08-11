@@ -9,6 +9,6 @@
      ("ربط جوجل شيت") وبيتخزن على الجهاز نفسه بس.
    ===================================================================== */
 window.RL_CONFIG = {
-  SHEET_API_URL: '',
+  SHEET_API_URL: 'https://script.google.com/macros/s/AKfycbz1y-uqOi5IHo_7xjTIiaLoe5lKKJgxDmYa1Sp8eZYuk7TwVSElFnskEYoGkV6olBzlcQ/exec',
   WRITE_KEY: ''
 };
