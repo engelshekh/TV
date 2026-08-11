@@ -1,0 +1,3269 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة متابعة مؤشرات الأداء اليومية - ريتش لاند</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-app:#0a121c;
+  --bg-glow:#10202b;
+  --bg-panel:#111c28;
+  --bg-card-head:#182531;
+  --surface-0:#0d1620;
+  --surface-1:#0f1a24;
+  --surface-2:#0a141d;
+  --border:rgba(255,255,255,.07);
+  --teal:#12a695;
+  --teal-dark:#0c6e63;
+  --teal-glow:rgba(18,166,149,.18);
+  --text:#eef4f7;
+  --text-dim:#8ba0af;
+  --good:#22c55e;
+  --warn:#f2a93c;
+  --bad:#ef4444;
+  --gold:#d9a441;
+  --blue:#4c8ef7;
+  --radius:14px;
+  --gap: 16px;
+  --pad-scale: 1;
+  --font-scale: 1;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(1200px 800px at 15% -10%, var(--bg-glow) 0%, var(--bg-app) 55%);
+  color:var(--text);
+  font-family:'Cairo', sans-serif;
+  min-height:100vh;
+  /* هامش يمين وشمال أوسع شوية من الهامش العلوي — عشان الكروت ماتلزقش في حواف
+     الشاشة، ومايحصلش تمرير أفقي مهما ضاقت الشاشة. */
+  padding:calc(14px * var(--pad-scale)) calc(20px * var(--pad-scale));
+  overflow-x:hidden;
+  transition:padding .25s ease;
+}
+#fitWrap{max-width:100%;}
+h1,h2,h3{margin:0;}
+button{font-family:inherit;cursor:pointer;border:none;}
+input,select{font-family:inherit;}
+
+/* ---------- HEADER ---------- */
+.app-header{
+  display:flex;align-items:center;justify-content:space-between;
+  direction:ltr;
+  padding:6px 4px 18px;
+}
+.app-header .side{display:flex;align-items:center;gap:10px;}
+.app-header .title{
+  flex:1;text-align:center;font-size:clamp(calc(18px*var(--font-scale)),2.2vw,calc(28px*var(--font-scale)));font-weight:800;
+  letter-spacing:.2px;direction:rtl;
+}
+.brand{direction:rtl;display:flex;align-items:center;gap:10px;font-weight:700;color:var(--text-dim);font-size:calc(14px*var(--font-scale));}
+.brand .logo{
+  width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--teal),var(--teal-dark));
+  display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:calc(14px*var(--font-scale));
+}
+.ctrl-btn{
+  display:flex;align-items:center;gap:8px;background:var(--bg-panel);border:1px solid var(--border);
+  color:var(--text);padding:10px 16px;border-radius:10px;font-weight:700;font-size:calc(14px*var(--font-scale));direction:rtl;
+  transition:.15s;
+}
+.ctrl-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--surface-1);}
+.ctrl-btn svg{width:17px;height:17px;flex-shrink:0;}
+
+/* ---------- KPI TOP ROW ---------- */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin-bottom:var(--gap);}
+.card{
+  background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
+  display:flex;flex-direction:column;min-width:0; /* بيمنع الجدول اللي جواه إنه يوسّع الصف كله ويطلع بره حدود الشاشة */
+}
+.card-head{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg-card-head);padding:calc(12px*var(--pad-scale)) calc(16px*var(--pad-scale));
+  border-bottom:1px solid var(--border);
+}
+.card-head h3{font-size:calc(15px*var(--font-scale));font-weight:700;overflow:hidden;overflow-wrap:break-word;flex:1;min-width:0;}
+.card-head .info-dot{width:calc(20px*var(--font-scale));height:calc(20px*var(--font-scale));border-radius:50%;border:1px solid var(--text-dim);color:var(--text-dim);
+  display:flex;align-items:center;justify-content:center;font-size:calc(12px*var(--font-scale));font-weight:700;flex-shrink:0;}
+.metric-table{width:100%;min-width:0;table-layout:auto;border-collapse:collapse;font-size:calc(13.5px*var(--font-scale));}
+.metric-table th{
+  text-align:right;color:var(--text-dim);font-weight:600;font-size:calc(12px*var(--font-scale));
+  padding:calc(8px*var(--pad-scale)) calc(14px*var(--pad-scale)) 6px;
+  overflow:hidden;overflow-wrap:break-word;
+}
+/* كل الأعمدة الرقمية (المستهدف/الفعلي/الكفاءة...) وعمود الحالة بتاخد بس المساحة اللي
+   محتوياتها القصيرة محتاجاها (width:1% + nowrap = "انكمش على قد المحتوى") — سواء الجدول
+   فيه عمودين رقميين (KPI) أو تلاتة (خطوط الإنتاج)، وعمود اسم المؤشر (الأول) لوحده هو
+   اللي بياخد كل المساحة المتبقية ويكبر، وده اللي بيحقق "عمود الاسم بس كبير والباقي على
+   قد الأرقام" مهما اختلف عدد الأعمدة من جدول للتاني. */
+.metric-table th:not(:first-child), .metric-table td:not(:first-child){
+  width:1%;white-space:nowrap;text-align:center;
+  padding-left:calc(10px*var(--pad-scale));padding-right:calc(10px*var(--pad-scale));
+}
+/* عمود الحالة هو آخر عمود، وبالتالي هو أقصى حافة الجدول من الشمال (RTL) — لازم يفضل ليه
+   نفس هامش الكارت الخارجي زي عمود الاسم بالظبط من على اليمين، مش بس مسافة داخلية ضيقة. */
+.metric-table th:last-child, .metric-table td:last-child{
+  padding-left:calc(14px*var(--pad-scale));padding-right:calc(6px*var(--pad-scale));
+}
+.metric-table td{
+  padding:calc(9px*var(--pad-scale)) calc(14px*var(--pad-scale));
+  border-top:1px solid var(--border);color:var(--text);
+  overflow:hidden;overflow-wrap:break-word;
+}
+/* عمود اسم المؤشر: أوسع عمود في الجدول دايمًا، والنص بيلف بدل ما يتقص — عشان الكلام يفضل باين كامل جوه حدود الكارت */
+.metric-table tr td:first-child{font-weight:600;width:auto;white-space:normal;padding-right:calc(14px*var(--pad-scale));}
+.metric-table td.dim{color:var(--text-dim);text-align:center;white-space:nowrap;}
+/* خانة "الفعلي" فيها الرقم + وسام الانحراف + وسام الأداء مع بعض — بنلفّهم في صندوق
+   واحد مرن عشان لو المساحة ضاقت ينزلوا سطر تحت بدل ما يطلعوا بره حدود العمود. */
+.metric-table td .val-wrap{
+  display:inline-flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:2px 4px;
+  max-width:100%;min-width:0;
+}
+.metric-table td.dim .val-wrap{white-space:normal;}
+/* عمود الحالة: عرضه ثابت على قد الدائرة + الهامش، فمستحيل الوسام يخرج بره الجدول */
+.metric-table th:last-child, .metric-table td:last-child{
+  width:calc(34px*var(--font-scale));min-width:calc(34px*var(--font-scale));overflow:visible;
+}
+.metric-table td:last-child{text-align:center;}
+/* الجداول جوه الكروت مايعدّوش حدود الكارت أبدًا */
+.card > .metric-table{max-width:100%;}
+.card, .card *{min-width:0;}
+
+.status{
+  display:inline-flex;align-items:center;justify-content:center;width:calc(22px*var(--font-scale));height:calc(22px*var(--font-scale));border-radius:50%;
+  font-size:calc(12px*var(--font-scale));font-weight:800;flex-shrink:0;
+}
+.status.good{background:rgba(34,197,94,.15);color:var(--good);}
+.status.warn{background:rgba(242,169,60,.15);color:var(--warn);}
+.status.bad{background:rgba(239,68,68,.15);color:var(--bad);}
+.status.na{background:rgba(139,160,175,.12);color:var(--text-dim);}
+
+/* ---------- SECTION BAR ---------- */
+.section-bar{
+  background:linear-gradient(90deg,var(--teal-dark),var(--teal));
+  color:#fff;text-align:center;padding:calc(10px*var(--pad-scale)) 10px;border-radius:10px;
+  font-weight:800;font-size:calc(15px*var(--font-scale));margin:6px 0 var(--gap);letter-spacing:.3px;
+}
+
+/* ---------- PRODUCTION LINES ---------- */
+.lines-row{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin-bottom:var(--gap);}
+.line-card .card-head{gap:8px;}
+.line-dot{width:calc(10px*var(--font-scale));height:calc(10px*var(--font-scale));border-radius:50%;flex-shrink:0;}
+.line-dot.good{background:var(--good);box-shadow:0 0 8px var(--good);}
+.line-dot.warn{background:var(--warn);box-shadow:0 0 8px var(--warn);}
+.line-dot.bad{background:var(--bad);box-shadow:0 0 8px var(--bad);}
+.line-card .card-head h3{display:flex;align-items:center;gap:8px;flex-direction:row-reverse;overflow:visible;}
+.line-card .card-head h3 .line-title{overflow:hidden;overflow-wrap:break-word;min-width:0;flex:1;}
+
+/* ---------- HISTORY CHARTS ---------- */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:8px;}
+.chart-card{padding:calc(12px*var(--pad-scale)) calc(16px*var(--pad-scale));}
+.chart-card h4{text-align:center;font-size:calc(14px*var(--font-scale));color:var(--text-dim);margin-bottom:6px;font-weight:700;overflow:hidden;overflow-wrap:break-word;}
+.chart-empty{color:var(--text-dim);font-size:calc(12px*var(--font-scale));text-align:center;padding:46px 10px;}
+@media (max-width:900px){ .charts-row{grid-template-columns:1fr;} }
+
+/* ---------- HEADER CHIPS (ساعة + آخر تحديث + نتيجة اليوم + أيام بدون حوادث) ---------- */
+.hdr-chips{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:0 0 var(--gap);}
+.chip{
+  display:flex;align-items:center;gap:8px;background:var(--bg-panel);border:1px solid var(--border);
+  border-radius:999px;padding:calc(7px*var(--pad-scale)) calc(14px*var(--pad-scale));
+  font-size:calc(12.5px*var(--font-scale));font-weight:700;color:var(--text-dim);white-space:nowrap;
+}
+.chip b{color:var(--text);font-weight:800;font-size:calc(13.5px*var(--font-scale));}
+.chip .dotled{width:8px;height:8px;border-radius:50%;background:var(--text-dim);flex-shrink:0;}
+.chip .dotled.live{background:var(--good);box-shadow:0 0 8px var(--good);}
+.chip .dotled.stale{background:var(--warn);box-shadow:0 0 8px var(--warn);}
+.chip.score-good b{color:var(--good);} .chip.score-warn b{color:var(--warn);} .chip.score-bad b{color:var(--bad);}
+.chip.score-good{border-color:rgba(34,197,94,.45);} .chip.score-warn{border-color:rgba(242,169,60,.45);} .chip.score-bad{border-color:rgba(239,68,68,.45);}
+
+/* ---------- فرق عن آخر قراءة + شريط تحقيق المخطط ---------- */
+/* لما الأوسمة تتقفل من لوحة التحكم: الخلايا تضيق والأرقام تتوسّط زي الأصل */
+.delta.up{color:var(--good);} .delta.down{color:var(--bad);} .delta.flat{color:var(--text-dim);}
+.spark-wrap{padding:calc(6px*var(--pad-scale)) calc(12px*var(--pad-scale)) calc(10px*var(--pad-scale));}
+.spark-wrap .spark-label{font-size:calc(10.5px*var(--font-scale));color:var(--text-dim);font-weight:700;margin-bottom:2px;}
+@keyframes pulseBad{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.38);}50%{box-shadow:0 0 0 4px rgba(239,68,68,0);}}
+.status.bad.pulse{animation:pulseBad 3.2s ease-out infinite;}
+@keyframes pulseWarn{0%,100%{box-shadow:0 0 0 0 rgba(242,169,60,.5);}50%{box-shadow:0 0 0 5px rgba(242,169,60,0);}}
+.status.warn.pulse-warn{animation:pulseWarn 2.8s ease-out infinite;}
+.status.good.glow{box-shadow:0 0 0 2px rgba(34,197,94,.22);}
+/* فوق المستهدف: نفس لون "ضمن المستهدف" مع فلاش أخضر خفيف */
+@keyframes pulseGood{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.45);}50%{box-shadow:0 0 0 5px rgba(34,197,94,0);}}
+.status.good.pulse-good{animation:pulseGood 2.4s ease-out infinite;}
+.val-exceed{color:#5ee68a !important;font-weight:800;}
+.dev-badge{font-size:calc(9.5px*var(--font-scale));font-weight:800;margin-right:5px;padding:1px 5px;border-radius:6px;white-space:nowrap;
+  direction:ltr;unicode-bidi:isolate;display:inline-block;}
+.dev-badge .num{direction:ltr;unicode-bidi:isolate;}
+.dev-badge .star{color:#ffd94a;margin-left:3px;}
+.dev-badge.over{background:rgba(21,128,61,.4);color:#c9f7d4;}
+.dev-badge.good{background:rgba(34,197,94,.14);color:var(--good);}
+.dev-badge.warn{background:rgba(242,169,60,.16);color:var(--warn);}
+.dev-badge.bad{background:rgba(239,68,68,.16);color:var(--bad);}
+.score-row{display:flex;gap:10px;align-items:center;margin-bottom:10px;}
+.score-row .field-col{flex:1;}
+.weight-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.weight-item{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:8px 10px;}
+.weight-item span{font-size:12.5px;}
+.weight-item input{width:70px;text-align:center;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:6px;color:var(--text);}
+.formula-box{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.9;color:var(--text-dim);margin-bottom:12px;}
+
+/* ---------- تسجيل الدخول / المستخدمون / السجل ---------- */
+.login-field{margin-bottom:12px;}
+.login-field label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;}
+.login-field input{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:10px;color:var(--text);font-size:14px;font-family:inherit;}
+.login-msg{font-size:12.5px;font-weight:700;margin-top:4px;min-height:18px;}
+.login-msg.err{color:var(--bad);} .login-msg.ok{color:var(--good);}
+.users-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.users-table th{color:var(--text-dim);font-weight:700;text-align:right;padding:8px 6px;border-bottom:1px solid var(--border);}
+.users-table td{padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.users-table .u-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.mini-btn{background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:4px 9px;font-size:11.5px;font-weight:700;font-family:inherit;}
+.mini-btn:hover{border-color:var(--teal);}
+.mini-btn.danger:hover{border-color:var(--bad);color:var(--bad);}
+.perm-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0 4px;}
+.perm-item{display:flex;align-items:center;gap:7px;background:var(--surface-1);border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:12px;cursor:pointer;}
+.perm-item input{accent-color:var(--teal);width:15px;height:15px;}
+.badge{display:inline-block;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:800;}
+.badge.on{background:rgba(34,197,94,.15);color:var(--good);}
+.badge.off{background:rgba(239,68,68,.15);color:var(--bad);}
+.badge.admin{background:rgba(217,164,65,.16);color:var(--gold);}
+.audit-list{max-height:56vh;overflow:auto;font-size:12.5px;}
+.audit-row{display:flex;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border);align-items:baseline;}
+.audit-row .a-time{color:var(--text-dim);font-size:11px;white-space:nowrap;}
+.audit-row .a-user{color:var(--teal);font-weight:800;white-space:nowrap;}
+.audit-row .a-what{flex:1;}
+.audit-row .a-val{font-weight:700;}
+.locked-note{background:var(--surface-1);border:1px dashed var(--border);border-radius:10px;padding:12px;color:var(--text-dim);font-size:12.5px;text-align:center;}
+.field-col input.invalid{border-color:var(--bad);background:rgba(239,68,68,.08);}
+@media (max-width:700px){ .perm-grid{grid-template-columns:1fr;} }
+
+/* ---------- STATUS KEY LINE ---------- */
+.status-key-line{
+  display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;
+  color:var(--text-dim);font-size:calc(13px*var(--font-scale));font-weight:700;padding:10px 4px;margin-bottom:var(--gap);
+}
+.status-key-line .key-item{display:flex;align-items:center;gap:6px;}
+.status-key-line .status{width:calc(20px*var(--font-scale));height:calc(20px*var(--font-scale));font-size:calc(11px*var(--font-scale));flex-shrink:0;}
+
+.footer-bar{
+  background:linear-gradient(90deg,var(--teal-dark),var(--teal));color:#fff;text-align:center;
+  padding:14px;border-radius:10px;font-weight:700;font-size:calc(14px*var(--font-scale));display:flex;align-items:center;justify-content:center;gap:14px;
+  position:relative;
+}
+.footer-bar .fs-ctrl{position:absolute;left:16px;}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width:1400px){
+  .lines-row{grid-template-columns:repeat(2,1fr);}
+}
+@media (max-width:900px){
+  .kpi-row{grid-template-columns:1fr 1fr;}
+}
+@media (max-width:640px){
+  .kpi-row{grid-template-columns:1fr;}
+  .lines-row{grid-template-columns:1fr;}
+  .app-header{flex-wrap:wrap;gap:10px;}
+  .app-header .title{order:3;width:100%;}
+  body{padding:calc(12px * var(--pad-scale)) calc(12px * var(--pad-scale));}
+  /* على الموبايل: الأرقام والأوسمة بتنزل تحت بعض بدل ما تتزاحم */
+  .metric-table{font-size:calc(12.5px*var(--font-scale));}
+  .metric-table th, .metric-table td{padding-left:calc(6px*var(--pad-scale));padding-right:calc(6px*var(--pad-scale));}
+  .metric-table tr td:first-child{padding-right:calc(10px*var(--pad-scale));}
+}
+/* fullscreen / TV mode: fill viewport nicely */
+:fullscreen body, body:fullscreen{padding:22px;}
+body.tv-mode{padding:26px 34px;}
+body.tv-mode .title{font-size:calc(30px*var(--font-scale));}
+
+/* =====================================================================
+   ---------- الطباعة / PDF ----------
+   التقرير والجداول بس هي اللي بتتطبع: كل أزرار التحكم واللوحات والإعدادات
+   والأوسمة المتقفلة بتختفي. شكل الشاشة الأساسي مابيتغيرش خالص — ده ستايل
+   منفصل بيشتغل وقت الطباعة بس.
+   ===================================================================== */
+@media print{
+  @page{ size:A4 landscape; margin:10mm; }
+  html, body{
+    background:#fff !important; color:#111 !important;
+    padding:0 !important; margin:0 !important; width:100%;
+    overflow:visible !important; height:auto !important;
+  }
+  /* كل ما هو تحكم أو تنقل أو إعدادات: مايتطبعش */
+  .overlay, .ctrl-btn, #openControlBtn, .panel, .tile, .tile-grid, .group-label,
+  .wide-btn, .small-btn, .mini-btn, .panel-close, .toast, #toast,
+  .layout-editing, .fs-ctrl, .footer-bar .fs-ctrl, .info-dot,
+  [data-open], [data-close], button, select, input, textarea{
+    display:none !important;
+  }
+  /* لو الأوسمة مقفولة من لوحة التحكم فهي مش مرسومة أصلاً، فمش بتظهر في الطباعة */
+  /* المحتوى المطبوع */
+  #fitWrap{ transform:none !important; width:100% !important; max-width:100% !important; }
+  .app-header{ padding:0 0 8px !important; border-bottom:1.5px solid #999; }
+  .app-header .title{ color:#111 !important; font-size:17pt !important; }
+  .brand{ color:#333 !important; }
+  .brand .logo{ background:#0c6e63 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .hdr-chips, #hdrChips{ color:#333 !important; }
+  .kpi-row{ grid-template-columns:repeat(2,1fr) !important; gap:6mm !important; }
+  .lines-row{ grid-template-columns:repeat(2,1fr) !important; gap:6mm !important; }
+  .charts-row{ grid-template-columns:repeat(2,1fr) !important; gap:6mm !important; }
+  .card{
+    background:#fff !important; border:1px solid #999 !important; border-radius:6px !important;
+    box-shadow:none !important; break-inside:avoid; page-break-inside:avoid;
+  }
+  .card-head{ background:#eef2f4 !important; border-bottom:1px solid #999 !important;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .card-head h3, .line-title{ color:#111 !important; font-size:11pt !important; }
+  .section-bar{ background:#0c6e63 !important; color:#fff !important;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact; break-after:avoid; }
+  /* حدود واضحة لكل خلية عشان الجدول يبان مطبوع */
+  .metric-table{ font-size:9.5pt !important; }
+  .metric-table th{ color:#333 !important; border-bottom:1px solid #999 !important; }
+  .metric-table td{ border-top:1px solid #ccc !important; color:#111 !important; }
+  .metric-table td.dim{ color:#333 !important; }
+  .metric-table tr{ break-inside:avoid; page-break-inside:avoid; }
+  thead{ display:table-header-group; }
+  tr, td, th{ break-inside:avoid; page-break-inside:avoid; }
+  /* الحالة: دوائر بحدود بدل ألوان خلفية باهتة */
+  .status{ border:1.2px solid currentColor; animation:none !important; box-shadow:none !important;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .status.good{ color:#177245 !important; background:#e8f6ee !important; }
+  .status.warn{ color:#8a5a00 !important; background:#fdf3e2 !important; }
+  .status.bad{ color:#a02020 !important; background:#fdeaea !important; }
+  .status.na{ color:#666 !important; background:#f1f1f1 !important; }
+  .dev-badge{ background:transparent !important; color:#333 !important; }
+  .dev-badge.over{ color:#177245 !important; }
+  .status-key-line{ background:#fff !important; border:1px solid #999 !important; color:#333 !important;
+    break-inside:avoid; }
+  .footer-bar{ background:#fff !important; color:#333 !important; border-top:1px solid #999 !important; }
+  .spark-wrap{ display:none !important; }        /* الرسم المصغّر مش مفيد مطبوع */
+  body.rotation-active #rotationStage{ display:block !important; height:auto !important; }
+  body.rotation-active .rotation-group{ display:block !important; transform:none !important; }
+  body.kiosk-fit{ overflow:visible !important; height:auto !important; }
+}
+
+/* ---------- THEME SWITCH TRANSITION ---------- */
+body, .card, .panel, .tile, input, select, .section-bar, .footer-bar{
+  transition:background-color .3s ease, border-color .3s ease, color .3s ease;
+}
+
+/* ---------- FIT TO SCREEN (KIOSK) ---------- */
+#fitWrap{transform-origin:top left;}
+body.kiosk-fit{overflow:hidden;height:100vh;padding:0;}
+
+/* ---------- ROW ROTATION — FULL-SCREEN STAGE ----------
+   وضع مستقل بيتفعّل تلقائيًا مع تفعيل التناوب: بيثبّت الهيدر فوق وشريط
+   "مفتاح الحالة" + الفوتر تحت في نفس المكان بالظبط في كل الحالات (ارتفاع
+   المنطقة اللي بينهم ثابت دايمًا)، والصف المعروض حاليًا بس هو اللي بيتكبّر
+   (transform: scale) عشان ياخد المساحة الفاضية بالكامل. */
+body.rotation-active{padding:0;overflow:hidden;}
+body.rotation-active #fitWrap{display:flex;flex-direction:column;height:100vh;overflow:hidden;padding:calc(14px*var(--pad-scale));}
+body.rotation-active .app-header{flex:0 0 auto;}
+body.rotation-active #rotationStage{
+  flex:1 1 auto;min-height:0;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+body.rotation-active .rotation-group{flex:0 0 auto;transform-origin:center center;}
+body.rotation-active .status-key-line, body.rotation-active .footer-bar{flex:0 0 auto;}
+.tile.on{outline:2px solid var(--teal);background:rgba(255,255,255,.06);}
+.tile .tile-state{font-size:11px;color:var(--text-dim);font-weight:600;}
+
+/* ---------- THEME SWATCHES ---------- */
+.theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px;}
+.theme-swatch{
+  border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;
+  display:flex;flex-direction:column;gap:8px;transition:.15s;
+}
+.theme-swatch:hover{transform:translateY(-2px);}
+.theme-swatch.active{outline:2px solid var(--teal);}
+.theme-swatch .swatch-bar{display:flex;border-radius:8px;overflow:hidden;height:28px;}
+.theme-swatch .swatch-bar span{flex:1;}
+.theme-swatch .swatch-name{font-size:12.5px;font-weight:700;color:var(--text);text-align:center;}
+.visibility-list{display:flex;flex-direction:column;gap:8px;max-height:240px;overflow:auto;margin-bottom:4px;}
+.visibility-item{
+  display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);
+  background:var(--surface-1);border:1px solid var(--border);border-radius:9px;padding:9px 12px;cursor:pointer;
+}
+.visibility-item:hover{border-color:var(--teal);}
+.visibility-item input{width:17px;height:17px;accent-color:var(--teal);cursor:pointer;flex-shrink:0;}
+.layout-editing .card, .layout-editing .footer-bar{outline:2px dashed transparent;}
+.layout-editing .kpi-row .card, .layout-editing .lines-row .card{cursor:grab;outline:2px dashed rgba(76,142,247,.5);}
+.layout-editing .kpi-row .card:active, .layout-editing .lines-row .card:active{cursor:grabbing;}
+.drag-ghost{opacity:.35;}
+
+/* ---------- MODAL / CONTROL PANEL ---------- */
+.overlay{
+  position:fixed;inset:0;background:rgba(4,8,12,.65);backdrop-filter:blur(2px);
+  display:none;align-items:center;justify-content:center;z-index:999;padding:20px;
+}
+.overlay.open{display:flex;}
+.panel{
+  background:var(--surface-0);border:1px solid var(--border);border-radius:18px;width:100%;max-width:420px;
+  padding:22px;position:relative;max-height:calc(100vh - 40px);overflow-y:auto;overscroll-behavior:contain;
+}
+.panel::-webkit-scrollbar{width:8px;}
+.panel::-webkit-scrollbar-thumb{background:#2a3b48;border-radius:4px;}
+.panel::-webkit-scrollbar-track{background:transparent;}
+/* لوحة التحكم الرئيسية: ٣ أعمدة عشان كل المربعات تبان من غير تمرير طويل */
+#mainOverlay .panel{max-width:760px;}
+#mainOverlay .tile-grid{grid-template-columns:repeat(3,1fr);}
+@media (max-width:820px){ #mainOverlay .panel{max-width:520px;} #mainOverlay .tile-grid{grid-template-columns:repeat(2,1fr);} }
+@media (max-width:560px){ #mainOverlay .tile-grid{grid-template-columns:1fr;} }
+.group-label{
+  display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--text-dim);
+  margin:14px 2px 8px;letter-spacing:.2px;
+}
+.group-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.group-label .lock{font-size:11px;color:var(--gold);font-weight:700;}
+.panel.wide{max-width:640px;}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.panel-head h2{font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px;}
+.panel-close{
+  width:32px;height:32px;border-radius:50%;background:var(--surface-2);color:var(--text-dim);
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+}
+.panel-close:hover{color:var(--text);background:var(--surface-2);}
+.tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.tile{
+  background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:16px 12px;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:10px;font-size:13.5px;font-weight:700;color:var(--text);
+  transition:.15s;
+}
+.tile svg{width:24px;height:24px;}
+.tile.gold{color:var(--gold);border-color:rgba(217,164,65,.35);}
+.tile.teal{color:var(--teal);border-color:rgba(18,166,149,.45);}
+.tile.blue{color:var(--blue);border-color:rgba(76,142,247,.4);}
+.tile.plain{color:var(--text);}
+/* الهوفر مابيستخدمش brightness عشان في الثيم الفاتح كان بيفتّح النص لدرجة إنه يختفي.
+   بدالها: إطار ملون + خلفية خفيفة، والنص بيفضل بلونه الأصلي في كل الثيمات. */
+.tile:hover{transform:translateY(-2px);border-color:var(--teal);background:var(--surface-2);}
+.tile.gold:hover{border-color:var(--gold);}
+.tile.blue:hover{border-color:var(--blue);}
+.tile.teal:hover{border-color:var(--teal);}
+.tile.active{background:rgba(255,255,255,.06);}
+/* ---------- ROW ROTATION TILE (كارت التناوب بين الصفوف) ---------- */
+.tile-sub-field{
+  display:flex;align-items:center;justify-content:center;gap:6px;width:100%;
+  font-size:11.5px;font-weight:600;color:var(--text-dim);cursor:default;
+}
+.tile-sub-field input[type="number"]{
+  width:52px;background:var(--surface-0);border:1px solid var(--border);border-radius:6px;
+  color:var(--text);text-align:center;padding:4px 2px;font-size:12.5px;font-weight:700;cursor:text;
+}
+.tile-sub-field input[type="number"]:focus{outline:none;border-color:var(--teal);}
+
+/* ---------- BOLD TEXT MODE (خط عريض لكل النصوص جوه الكروت) ---------- */
+body.bold-text .card, body.bold-text .card *{font-weight:700 !important;}
+body.bold-text .status-key-line, body.bold-text .status-key-line *{font-weight:700 !important;}
+.wide-btn{
+  width:100%;background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:14px;
+  display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700;color:var(--text);margin-bottom:14px;
+}
+.wide-btn:hover{border-color:var(--teal);}
+.field-label{font-size:13px;color:var(--text-dim);margin-bottom:6px;display:block;}
+.date-field{
+  width:100%;background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);
+  margin-bottom:14px;
+}
+.panel-footer{text-align:center;color:var(--text-dim);font-size:12px;margin-top:6px;}
+
+/* sub panels */
+.sub{display:none;}
+.sub.open{display:block;}
+.slider-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px;}
+.slider-row input[type=range]{flex:1;}
+input[type=text]{
+  width:100%;background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);
+  margin-bottom:10px;
+}
+.small-btn{
+  background:var(--teal);color:#fff;padding:9px 16px;border-radius:9px;font-weight:700;font-size:13px;
+}
+.small-btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text-dim);}
+.small-btn.danger{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.5);color:#ff9a9a;}
+.small-btn.danger:hover{background:rgba(239,68,68,.24);color:var(--bad);}
+.small-btn:disabled{opacity:.55;cursor:not-allowed;}
+.danger-box{
+  border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.08);border-radius:10px;
+  padding:12px 14px;font-size:12.5px;line-height:1.85;color:#ffc9c9;
+}
+.field-col.name-col{flex:1 1 100%;}
+.name-input{font-weight:700 !important;}
+
+.hint{font-size:12px;color:var(--text-dim);line-height:1.7;margin-bottom:10px;}
+.edit-table{width:100%;border-collapse:collapse;font-size:13px;max-height:340px;overflow:auto;display:block;}
+.edit-table th{text-align:right;color:var(--text-dim);font-weight:600;padding:6px 8px;position:sticky;top:0;background:var(--surface-0);}
+.edit-table td{padding:6px 8px;border-top:1px solid var(--border);}
+.edit-table input, .edit-table select{width:100%;background:var(--surface-1);border:1px solid var(--border);border-radius:7px;padding:6px 8px;color:var(--text);font-size:12.5px;}
+.edit-section-label{font-weight:800;color:var(--teal);margin:18px 0 10px;font-size:14px;display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.edit-section-label .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);flex-shrink:0;}
+.edit-meta-row{display:flex;gap:14px;margin-bottom:16px;}
+.edit-meta-col{flex:1;background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+.edit-meta-col label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;}
+.edit-meta-col select{width:100%;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;}
+.edit-subtitle{color:var(--text-dim);font-size:12.5px;margin:-10px 0 16px;}
+.edit-metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:6px;}
+.edit-metric-card{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:12px;}
+.edit-metric-title{font-size:13px;font-weight:700;color:var(--text);text-align:right;margin-bottom:10px;}
+.edit-metric-row{display:flex;gap:10px;margin-bottom:10px;}
+.field-col{flex:1;}
+.field-col label{display:block;font-size:11px;color:var(--text-dim);margin-bottom:5px;text-align:center;}
+.field-col input{width:100%;text-align:center;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:7px 6px;color:var(--text);font-size:13px;}
+.input-with-unit{position:relative;display:block;}
+.input-with-unit input{padding-left:26px;}
+.field-unit{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11.5px;font-weight:700;color:var(--text-dim);pointer-events:none;}
+.sign-select{width:100%;margin-top:6px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:5px 6px;color:var(--text);font-size:11.5px;font-family:inherit;}
+.field-col input:disabled{background:var(--surface-0);color:var(--text-dim);opacity:.85;cursor:not-allowed;}
+.edit-metric-grid.lines{grid-template-columns:repeat(2,1fr);}
+.ov-label{display:block;font-size:11px;color:var(--text-dim);margin-bottom:5px;}
+.ov-select{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:7px 8px;color:var(--text);font-size:12.5px;}
+.notes-textarea{width:100%;min-height:70px;background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:vertical;}
+@media (max-width:700px){ .edit-metric-grid{grid-template-columns:1fr;} .edit-meta-row{flex-direction:column;} }
+.toast{
+  position:fixed;top:84px;left:50%;transform:translateX(-50%);background:#123028;color:#8ffcd6;
+  border:1px solid rgba(34,197,94,.4);padding:10px 20px;border-radius:10px;font-weight:700;font-size:13px;
+  z-index:1200;opacity:0;pointer-events:none;transition:.25s;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(6px);}
+</style>
+</head>
+<body>
+
+<div id="fitWrap">
+<div class="app-header">
+  <button class="ctrl-btn" id="openControlBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    لوحة التحكم
+  </button>
+  <h1 class="title">لوحة متابعة مؤشرات الأداء اليومية</h1>
+  <div class="brand"><div class="logo">RL</div>ريتش لاند للصناعات الغذائية</div>
+</div>
+
+<!-- شريط المعلومات الحية: الساعة + آخر تحديث + نتيجة أداء اليوم + أيام بدون حوادث -->
+<div class="hdr-chips" id="hdrChips"></div>
+
+<!-- منطقة الصفوف القابلة للتدوير: كل صف ملفوف في غلاف ثابت الـid عشان وضع التدوير
+     ياخد وحدة واحدة يقيسها ويكبّرها لملء الشاشة، مع ثبات مكان الشريط والفوتر تحتها دايمًا -->
+<div id="rotationStage">
+  <div class="rotation-group" id="rotGroupKpi">
+    <!-- KPI TOP ROW -->
+    <div class="kpi-row" id="kpiRow"></div>
+  </div>
+
+  <div class="rotation-group" id="rotGroupLines">
+    <div class="section-bar" id="linesSectionBar">أداء خطوط الإنتاج (Production Lines Performance)</div>
+    <div class="lines-row" id="linesRow"></div>
+  </div>
+
+  <div class="rotation-group" id="rotGroupCharts">
+    <div class="charts-row" id="chartsRow">
+      <div class="card chart-card" id="chartCardContainers">
+        <h4 title="أداء الحاويات المشحونة يوميًا (سجل حقيقي)">أداء الحاويات المشحونة يوميًا (سجل حقيقي)</h4>
+        <div id="barChartWrap"></div>
+      </div>
+      <div class="card chart-card" id="chartCardTrend">
+        <h4 title="مؤشرات الاتجاه (Trend) — سجل حقيقي">مؤشرات الاتجاه (Trend) — سجل حقيقي</h4>
+        <div id="trendChartWrap"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="status-key-line">
+  <span>مفتاح الحالة:</span>
+  <span class="key-item"><span class="status good">✓</span> ضمن المستهدف</span>
+  <span class="key-item"><span class="status warn">!</span> يحتاج إلى متابعة</span>
+  <span class="key-item"><span class="status bad">✕</span> خارج المستهدف</span>
+  <span class="key-item"><span class="status good pulse-good">✓</span> فوق المستهدف <span class="dev-badge over"><span class="star">★</span></span></span>
+</div>
+
+<div class="footer-bar" id="footerBar">
+  <span id="footerTagline"></span>
+</div>
+</div>
+
+<div class="toast" id="toast">تم الحفظ بنجاح</div>
+
+<!-- =============== MAIN CONTROL PANEL =============== -->
+<div class="overlay" id="mainOverlay">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>⚙ لوحة التحكم وإعدادات العرض</h2>
+      <div class="panel-close" data-close="mainOverlay">✕</div>
+    </div>
+    <div class="group-label">البيانات والإعدادات المشتركة <span class="lock" id="lockNote">🔒 محتاجة تسجيل دخول</span></div>
+    <div class="tile-grid" id="adminTiles">
+      <div class="tile blue" data-open="editOverlay">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"></path></svg>
+        تعديل يدوي للمؤشرات
+      </div>
+      <div class="tile plain" data-open="sheetOverlay">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        ربط جوجل شيت
+      </div>
+      <div class="tile plain" id="usersTile" data-open="usersOverlay">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        المستخدمون والصلاحيات
+      </div>
+      <div class="tile plain" id="shiftTile" data-open="shiftOverlay">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 16 14"></polyline></svg>
+        مواعيد الورديات
+      </div>
+      <div class="tile plain" id="scoreTile" data-open="scoreOverlay">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path></svg>
+        معادلة أداء اليوم
+      </div>
+      <div class="tile plain" id="auditTile" data-open="auditOverlay">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"></path><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"></path></svg>
+        سجل التغييرات
+      </div>
+      <div class="tile plain" id="loginTile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        تسجيل الدخول (للتعديل)
+      </div>
+      <div class="tile plain" id="logoutTile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        تسجيل الخروج (<span id="logoutUserName">-</span>)
+      </div>
+    </div>
+    <div class="group-label">إعدادات العرض على الشاشة <span class="lock" style="color:var(--good);">مفتوحة للكل بدون دخول</span></div>
+    <div class="tile-grid">
+      <div class="tile gold" data-open="layoutOverlay">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line></svg>
+        تعديل الترتيب والمساحات
+      </div>
+      <div class="tile teal" id="tvTile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+        بث التلفزيون (كامل الشاشة)
+      </div>
+      <div class="tile gold" id="fitScreenTile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>
+        ملء الشاشة بالكامل (Fit + Stretch)
+        <span class="tile-state">غير مفعّل</span>
+      </div>
+      <div class="tile gold" id="rotationTile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        عرض الصفوف بالتناوب (Row Rotation)
+        <span class="tile-state" id="rotationStateLabel">غير مفعّل</span>
+        <div class="tile-sub-field" onclick="event.stopPropagation()">
+          <label for="rotationInterval">مدة كل صف (ثانية):</label>
+          <input type="number" id="rotationInterval" min="3" max="300" step="1" value="10">
+        </div>
+      </div>
+      <div class="tile blue" id="boldTextTile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h8a4 4 0 0 1 0 8H6z"></path><path d="M6 12h9a4 4 0 0 1 0 8H6z"></path></svg>
+        خط عريض للنصوص (Bold Text)
+        <span class="tile-state" id="boldTextStateLabel">مفعّل</span>
+      </div>
+      <div class="tile plain" data-open="themeOverlay">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5"></circle><circle cx="17.5" cy="10.5" r=".5"></circle><circle cx="8.5" cy="7.5" r=".5"></circle><circle cx="6.5" cy="12.5" r=".5"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path></svg>
+        الثيمات (Themes)
+      </div>
+    </div>
+    <button class="wide-btn" id="pdfBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+      تحميل التقرير كـ PDF
+    </button>
+    <label class="field-label">تاريخ عرض البيانات ومزامنته:</label>
+    <input type="date" class="date-field" id="syncDate">
+    <div class="panel-footer">ريتش لاند للصناعات الغذائية - لوحة مؤشرات الأداء</div>
+  </div>
+</div>
+
+<!-- =============== LAYOUT SUB PANEL =============== -->
+<div class="overlay" id="layoutOverlay">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>تعديل الترتيب والمساحات</h2>
+      <div class="panel-close" data-close="layoutOverlay">✕</div>
+    </div>
+    <div class="hint">حرّك الكروت بالسحب لتغيير ترتيبها، واستخدم الشريط لضبط كثافة المساحات بين العناصر.</div>
+    <div class="slider-row">
+      <span style="font-size:13px;color:var(--text-dim);white-space:nowrap;">مضغوط</span>
+      <input type="range" id="densitySlider" min="70" max="140" value="100">
+      <span style="font-size:13px;color:var(--text-dim);white-space:nowrap;">مريح</span>
+    </div>
+    <div class="hint" style="margin-top:2px;">وده شريط منفصل يكبّر/يصغّر حجم الخط بس من غير ما يأثر على المساحات.</div>
+    <div class="slider-row">
+      <span style="font-size:13px;color:var(--text-dim);white-space:nowrap;">صغير</span>
+      <input type="range" id="fontSizeSlider" min="85" max="130" value="100">
+      <span style="font-size:13px;color:var(--text-dim);white-space:nowrap;">كبير</span>
+    </div>
+    <button class="small-btn" id="toggleDragBtn" style="width:100%;">تفعيل وضع سحب الترتيب</button>
+    <div class="edit-section-label" style="margin-top:18px;"><span class="dot"></span>إظهار / إخفاء المربعات</div>
+    <div class="hint" style="margin-top:-4px;">شيل علامة الصح عن أي مربع عشان تخفيه — الباقي في نفس الصف ياخد مكانه تلقائي، ولو خفيت الصف كله بيختفي والصفوف اللي بعده تطلع لفوق. رجّع العلامة وهو يرجع مكانه.</div>
+    <div class="visibility-list" id="visibilityChecklist"></div>
+  </div>
+</div>
+
+<!-- =============== GOOGLE SHEET SUB PANEL =============== -->
+<div class="overlay" id="sheetOverlay">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>ربط جوجل شيت</h2>
+      <div class="panel-close" data-close="sheetOverlay">✕</div>
+    </div>
+    <div class="hint">
+      الصق رابط الـ Web App اللي طلع لك بعد نشر سكريبت Apps Script على الشيت (شكله: https://script.google.com/macros/s/.../exec)، ومعاه مفتاح الكتابة الموجود في أول <b>apps-script.gs</b> عند <code>WRITE_KEY</code>. الاتنين بيتحفظوا على الجهاز ده بس — <b>مش في الكود ولا على GitHub</b>.
+    </div>
+    <label class="field-label">رابط الـ Web App:</label>
+    <input type="text" id="sheetUrl" placeholder="https://script.google.com/macros/s/xxxxxxxx/exec">
+    <label class="field-label" style="margin-top:10px;">مفتاح الكتابة (WRITE_KEY):</label>
+    <input type="password" id="sheetKey" placeholder="نفس القيمة الموجودة في apps-script.gs">
+    <button class="small-btn" id="sheetSyncBtn" style="width:100%;margin-top:10px;">اتصال ومزامنة الآن</button>
+    <div class="hint" id="sheetStatus" style="margin-top:10px;"></div>
+    <div class="edit-section-label" style="margin-top:18px;"><span class="dot"></span>منطقة الخطر</div>
+    <div class="hint">مسح كل البيانات بيفضّي قيم المؤشرات وسجل الورديات والملخصات اليومية والشهرية من جوجل شيت. <b>مابيمسحش</b> الحسابات ولا الصلاحيات ولا الإعدادات ولا أسماء المؤشرات ولا سجل التغييرات.</div>
+    <button class="small-btn danger" id="clearDataBtn" style="width:100%;margin-top:8px;">🗑 مسح كل البيانات (أدمن فقط)</button>
+  </div>
+</div>
+
+<!-- =============== LOGIN PANEL =============== -->
+<div class="overlay" id="clearOverlay">
+  <div class="panel" style="max-width:520px;">
+    <div class="panel-head">
+      <h2 style="color:var(--bad);">⚠ مسح كل البيانات</h2>
+      <div class="panel-close" data-close="clearOverlay">✕</div>
+    </div>
+    <div class="danger-box">
+      <b>الخطوة دي مالهاش رجوع.</b> هيتمسح من جوجل شيت:
+      <ul style="margin:8px 0 0;padding-right:18px;">
+        <li>قيم كل المؤشرات (المستهدف والفعلي والكفاءة)</li>
+        <li>سجل الورديات اليومي (Log)</li>
+        <li>الملخصات اليومية والشهرية (Daily / Monthly)</li>
+      </ul>
+    </div>
+    <div class="hint" style="margin-top:10px;">
+      <b>هيفضل زي ما هو:</b> الحسابات والصلاحيات • الإعدادات ومواعيد الورديات ومعادلة الأداء •
+      أسماء المؤشرات وحدود الحالة ووسام الأداء • سجل التغييرات (وهيتسجّل فيه إن المسح حصل).
+    </div>
+    <label class="visibility-item" style="margin:12px 0;">
+      <input type="checkbox" id="clearHistoryToo">
+      <span>امسح كمان بيانات الرسوم التاريخية (History) — مش مطلوب غالبًا</span>
+    </label>
+    <label class="field-label">للتأكيد، اكتب كلمة <b>مسح</b> في الخانة دي:</label>
+    <input type="text" id="clearConfirmInput" placeholder="مسح" autocomplete="off">
+    <div class="login-msg" id="clearMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:12px;">
+      <button class="small-btn danger" id="clearConfirmBtn" style="flex:1;">أنا متأكد — امسح البيانات</button>
+      <button class="small-btn ghost" data-close="clearOverlay" style="flex:1;">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="loginOverlay">
+  <div class="panel" style="max-width:420px;">
+    <div class="panel-head">
+      <h2>🔐 تسجيل الدخول للتحكم</h2>
+      <div class="panel-close" data-close="loginOverlay">✕</div>
+    </div>
+    <div class="hint">العرض على الشاشة مفتوح للجميع بدون تسجيل دخول — الدخول مطلوب فقط لتعديل البيانات والإعدادات.</div>
+    <div class="login-field"><label>اسم المستخدم</label><input id="loginUser" autocomplete="username"></div>
+    <div class="login-field"><label>كلمة المرور</label><input id="loginPass" type="password" autocomplete="current-password"></div>
+    <div class="login-msg" id="loginMsg"></div>
+    <button class="small-btn" id="loginBtn" style="width:100%;margin-top:6px;">دخول</button>
+    <div class="hint" style="margin-top:12px;" id="firstRunHint"></div>
+  </div>
+</div>
+
+<!-- =============== USERS & PERMISSIONS PANEL =============== -->
+<div class="overlay" id="usersOverlay">
+  <div class="panel wide" style="max-width:860px;">
+    <div class="panel-head">
+      <h2>👥 المستخدمون والصلاحيات</h2>
+      <div class="panel-close" data-close="usersOverlay">✕</div>
+    </div>
+    <div class="hint">كل مستخدم بتحدّد له الجداول اللي يقدر يعدّلها. الأدمن عنده كل الصلاحيات + تعديل الحدود + إدارة المستخدمين.</div>
+    <div style="max-height:40vh;overflow:auto;margin-bottom:14px;"><table class="users-table" id="usersTable"></table></div>
+    <div class="edit-section-label"><span class="dot"></span><span id="userFormTitle">إضافة مستخدم جديد</span></div>
+    <div class="edit-meta-row">
+      <div class="edit-meta-col"><label>اسم المستخدم (للدخول)</label><input id="nuUser" style="width:100%;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;"></div>
+      <div class="edit-meta-col"><label>الاسم بالكامل</label><input id="nuName" style="width:100%;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;"></div>
+    </div>
+    <div class="edit-meta-row">
+      <div class="edit-meta-col"><label>كلمة المرور</label><input id="nuPass" type="password" style="width:100%;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;"></div>
+      <div class="edit-meta-col"><label>النوع</label>
+        <select id="nuAdmin"><option value="0">مستخدم عادي</option><option value="1">أدمن (كل الصلاحيات)</option></select>
+      </div>
+    </div>
+    <label class="ov-label" style="margin-top:10px;">الجداول المسموح له بتعديلها</label>
+    <div class="perm-grid" id="nuPerms"></div>
+    <div class="login-msg" id="usersMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:10px;">
+      <button class="small-btn" id="saveUserBtn" style="flex:1;">حفظ المستخدم</button>
+      <button class="small-btn ghost" id="resetUserFormBtn" style="flex:1;">مسح الحقول</button>
+    </div>
+  </div>
+</div>
+
+<!-- =============== AUDIT LOG PANEL =============== -->
+<div class="overlay" id="shiftOverlay">
+  <div class="panel" style="max-width:560px;">
+    <div class="panel-head">
+      <h2>مواعيد الورديات</h2>
+      <div class="panel-close" data-close="shiftOverlay">✕</div>
+    </div>
+    <div class="hint">حدّد ساعة بداية كل وردية، واللوحة تعرف لوحدها إحنا في أي وردية دلوقتي — وتفتح لوحة التعديل عليها مباشرة. الوردية تبدأ من الساعة اللي تحددها لحد بداية الوردية اللي بعدها.</div>
+    <div class="score-row">
+      <div class="field-col"><label>بداية الصباحية</label><input type="time" id="shMorning"></div>
+      <div class="field-col"><label>بداية المسائية</label><input type="time" id="shEvening"></div>
+      <div class="field-col"><label>بداية الليلية</label><input type="time" id="shNight"></div>
+    </div>
+    <label class="visibility-item" style="margin-bottom:10px;">
+      <input type="checkbox" id="shAuto">
+      <span>حدّد الوردية تلقائيًا من الوقت الحالي</span>
+    </label>
+    <div class="hint" id="shiftPreview"></div>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="small-btn" id="saveShiftBtn" style="flex:1;">حفظ المواعيد</button>
+      <button class="small-btn ghost" id="resetShiftBtn" style="flex:1;">رجّع الافتراضي</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="scoreOverlay">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>معادلة "أداء اليوم"</h2>
+      <div class="panel-close" data-close="scoreOverlay">✕</div>
+    </div>
+    <div class="formula-box">
+      النتيجة = مجموع (وزن الجدول × نقاط حالة المؤشر) ÷ مجموع (وزن الجدول × نقاط "ضمن المستهدف") × 100<br>
+      • أي مؤشر مفيهوش قراءة (—) بيتشال من الحساب.<br>
+      • وزن الجدول 0 معناه الجدول مش داخل في الحساب خالص.<br>
+      • "فوق المستهدف" ياخد نقاط زيادة لو حددت مكافأة.
+    </div>
+    <div class="score-row">
+      <div class="field-col"><label>نقاط ضمن المستهدف</label><input id="scGood"></div>
+      <div class="field-col"><label>نقاط يحتاج متابعة</label><input id="scWarn"></div>
+      <div class="field-col"><label>نقاط خارج المستهدف</label><input id="scBad"></div>
+      <div class="field-col"><label>مكافأة فوق المستهدف</label><input id="scBonus"></div>
+    </div>
+    <div class="edit-section-label"><span class="dot"></span>وزن كل جدول في النتيجة</div>
+    <div class="weight-grid" id="weightGrid"></div>
+    <div class="hint" id="scorePreview" style="margin-top:12px;"></div>
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button class="small-btn" id="saveScoreBtn" style="flex:1;">حفظ المعادلة</button>
+      <button class="small-btn ghost" id="resetScoreBtn" style="flex:1;">رجّع الافتراضي</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="auditOverlay">
+  <div class="panel wide" style="max-width:760px;">
+    <div class="panel-head">
+      <h2>🕘 سجل التغييرات</h2>
+      <div class="panel-close" data-close="auditOverlay">✕</div>
+    </div>
+    <div class="hint">مين غيّر إيه وإمتى — آخر 300 تغيير محفوظة على الجهاز، وبتتبعت كمان لجوجل شيت لو الربط شغّال.</div>
+    <div class="audit-list" id="auditList"></div>
+    <button class="small-btn ghost" id="clearAuditBtn" style="margin-top:12px;">تفريغ السجل المحلي (أدمن فقط)</button>
+  </div>
+</div>
+
+<!-- =============== THEMES SUB PANEL =============== -->
+<div class="overlay" id="themeOverlay">
+  <div class="panel">
+    <div class="panel-head">
+      <h2>الثيمات (Themes)</h2>
+      <div class="panel-close" data-close="themeOverlay">✕</div>
+    </div>
+    <div class="hint">اختار الثيم اللي يريحك في العرض على شاشتك — بيتحفظ تلقائي ويفضل نفسه في المرة الجاية.</div>
+    <div class="theme-grid" id="themeGrid"></div>
+  </div>
+</div>
+
+<!-- =============== MANUAL EDIT SUB PANEL =============== -->
+<div class="overlay" id="editOverlay">
+  <div class="panel wide" style="max-width:760px;">
+    <div class="panel-head">
+      <h2>تعديل قيم مؤشرات الأداء</h2>
+      <div class="panel-close" data-close="editOverlay">✕</div>
+    </div>
+    <div class="edit-subtitle" id="editSubtitle">تعديل البيانات لـ 21-05-2024</div>
+    <div class="edit-meta-row">
+      <div class="edit-meta-col">
+        <label>الوردية</label>
+        <select id="shiftSelect">
+          <option>الصباحية</option><option>المسائية</option><option>الليلية</option>
+        </select>
+      </div>
+      <div class="edit-meta-col">
+        <label>تاريخ اليوم (<span id="editDayNamePreview"></span>)</label>
+        <input type="date" id="editDateInput" style="width:100%;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;">
+      </div>
+      <div class="edit-meta-col">
+        <label>أيام بدون حوادث <span id="safeDaysLock" style="font-size:10.5px;color:var(--gold);"></span></label>
+        <input type="number" id="safeDaysInput" min="0" step="1" placeholder="0"
+               style="width:100%;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;">
+      </div>
+    </div>
+    <div class="hint" id="safeDaysHint" style="margin:-4px 0 12px;">العدّاد بيزيد يوم بيوم لوحده من الرقم اللي تكتبه، وبيرجع صفر تلقائيًا لو سجّلت حادثة في "عدد الحوادث الوشيكة".</div>
+    <div style="max-height:52vh;overflow:auto;padding-left:4px;" id="editTableWrap"></div>
+    <div class="edit-section-label"><span class="dot"></span>الملاحظات والرسائل</div>
+    <textarea class="notes-textarea" id="notesTextarea"></textarea>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="small-btn" id="saveEditsBtn" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+        حفظ التعديلات
+      </button>
+      <button class="small-btn ghost" data-close="editOverlay" style="flex:1;">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- إعدادات المشروع: الرابط بس، من غير أي مفتاح أو باسورد (الملف ده بيترفع على GitHub عادي) -->
+<script src="config.js"></script>
+<script>
+var RL_CONFIG = (typeof window !== 'undefined' && window.RL_CONFIG) ? window.RL_CONFIG : {};
+var WRITE_KEY = localStorage.getItem('rl_write_key') || RL_CONFIG.WRITE_KEY || '';
+/* ================== DATA MODEL ================== */
+/* dir:'up'   -> higher actual than target/plan is GOOD (e.g. production totals, efficiency, OTIF, GMP score)
+   dir:'down' -> lower actual than target/plan is GOOD (e.g. waste, downtime, incidents, violations, hold cases) */
+const state = {
+  kpiSections: [
+    { id:'warehouse', title:'المستودعات والشحن (Warehouse)', metrics:[
+      { id:'w1', name:'عدد الحاويات المشحونة', target:'5', actual:'4', dir:'up', exceedable:true, override:'auto', pctGood:5, pctWarn:15 },
+      { id:'w2', name:'عدد أوامر التحميل المنفذة', target:'5', actual:'4', dir:'up', override:'auto', pctGood:5, pctWarn:15 },
+      { id:'w3', name:'الشحن في الموعد (% OTIF)', target:'95', targetSign:'≤', actual:'90', unit:'%', signable:true, dir:'up', override:'auto', pctGood:5, pctWarn:15 },
+    ]},
+    { id:'safety', title:'السلامة (Safety)', metrics:[
+      { id:'s1', name:'عدد الحوادث الوشيكة', target:'3', actual:'0', dir:'down', override:'auto', pctGood:5, pctWarn:15 },
+      { id:'s2', name:'مخاطر السلامة المفتوحة', target:'0', actual:'1', dir:'down', override:'auto', pctGood:5, pctWarn:15 },
+    ]},
+    { id:'quality', title:'الجودة (Quality)', metrics:[
+      { id:'q1', name:'عدد حالات الـ Hold', target:'5', actual:'1', dir:'down', override:'auto', pctGood:5, pctWarn:15 },
+      { id:'q2', name:'مخالفات الفود سيفتي', target:'60', actual:'50', dir:'down', override:'auto', pctGood:5, pctWarn:15 },
+      { id:'q3', name:'GMP Score (%)', target:'95', targetSign:'≤', actual:'92', unit:'%', signable:true, dir:'up', override:'auto', pctGood:5, pctWarn:15 },
+    ]},
+    { id:'production', title:'الإنتاج (Production)', metrics:[
+      { id:'p1', name:'إجمالي الإنتاج (كجم)', target:'50,000', actual:'52,980', dir:'up', exceedable:true, override:'auto', pctGood:5, pctWarn:15 },
+      { id:'p2', name:'الكفاءة الإنتاجية (%)', target:'85', targetSign:'', actual:'84', unit:'%', signable:true, dir:'up', override:'auto', pctGood:5, pctWarn:15 },
+      { id:'p3', name:'Product Waste (%)', target:'0.5', targetSign:'', actual:'0.4', unit:'%', signable:true, dir:'down', override:'auto', pctGood:5, pctWarn:15 },
+      { id:'p4', name:'Film Waste (%)', target:'1', targetSign:'', actual:'0.7', unit:'%', signable:true, dir:'down', override:'auto', pctGood:5, pctWarn:15 },
+      { id:'p5', name:'Rework (%)', target:'3', targetSign:'≥', actual:'2', unit:'%', signable:true, dir:'down', override:'auto', pctGood:5, pctWarn:15 },
+    ]},
+  ],
+  /* ===== خطوط التعبئة والتغليف =====
+     unit      : وحدة القياس للعرض فقط ('kg' / '%' / 'min') — مفيش % بيتحط على أي رقم تلقائيًا بعد كدا.
+     plan      : المخطط (رقم صافي من غير % أو رموز ≥ ≤).
+     effMode   : 'auto' = الكفاءة بتتحسب لوحدها = (الفعلي ÷ المخطط) × 100،
+                 'manual' = انت اللي بتكتب الكفاءة بالإيد (Product / Film Waste و Downtime).
+     signable  : true معناها فيه اختيار لعلامة المقارنة (> أو ≥ أو < أو ≤) للمخطط والفعلي.
+     planSign / actualSign : العلامة المختارة — بتتحفظ وبتظهر ثابتة جانب الرقم في الجدول.
+     العلامة المئوية % : بتتحط ثابتة في العرض لأي مؤشر وحدته '%' — مش محتاج تكتبها.
+     basis     : الحالة بتتحسب على إيه؟ 'eff' = على نسبة الكفاءة المحسوبة، 'actual' = على القيمة الفعلية نفسها.
+     pctGood   : لحد كام % انحراف عن المستهدف يبقى "ضمن المستهدف".
+     pctWarn   : ولحد كام % يبقى "يحتاج متابعة" — وبعد كده "خارج المستهدف".
+                 (مثال: 5 و 15 معناها لو قلّ ٥٪ عن المستهدف لسه ضمن المستهدف،
+                  ولحد ١٥٪ محتاج متابعة، وأكتر من كده خارج المستهدف.)
+                 الاتنين بيعدّلهم الأدمن بس، ونفس النظام مطبّق على كل الجداول. */
+  lines: [
+    { id:'line4', title:'خط تعبئة 1 (Filling 1)', metrics:[
+      { id:'l4_1', name:'الإنتاج (كجم)', unit:'kg', exceedable:true, plan:'26,400', actual:'26,480', dir:'up', basis:'eff', effMode:'auto', pctGood:5, pctWarn:15 },
+      { id:'l4_2', name:'الكفاءة (%)', unit:'%', plan:'85', actual:'87', dir:'up', basis:'eff', effMode:'auto', pctGood:5, pctWarn:15 },
+      { id:'l4_3', name:'Product Waste (%)', unit:'%', plan:'0.5', planSign:'≥', actual:'0.4', actualSign:'', signable:true, eff:'', dir:'down', basis:'actual', effMode:'manual', pctGood:5, pctWarn:15 },
+      { id:'l4_4', name:'Downtime (د)', unit:'min', plan:'35', actual:'-', eff:'', dir:'down', basis:'actual', effMode:'manual', pctGood:5, pctWarn:15 },
+    ]},
+    { id:'line3', title:'خط تعبئة 2 (Filling 2)', metrics:[
+      { id:'l3_1', name:'الإنتاج (كجم)', unit:'kg', exceedable:true, plan:'20,000', actual:'21,260', dir:'up', basis:'eff', effMode:'auto', pctGood:5, pctWarn:15 },
+      { id:'l3_2', name:'الكفاءة (%)', unit:'%', plan:'85', actual:'83', dir:'up', basis:'eff', effMode:'auto', pctGood:5, pctWarn:15 },
+      { id:'l3_3', name:'Product Waste (%)', unit:'%', plan:'0.5', planSign:'≥', actual:'0.6', actualSign:'', signable:true, eff:'', dir:'down', basis:'actual', effMode:'manual', pctGood:5, pctWarn:15 },
+      { id:'l3_4', name:'Downtime (د)', unit:'min', plan:'42', actual:'-', eff:'', dir:'down', basis:'actual', effMode:'manual', pctGood:5, pctWarn:15 },
+    ]},
+    { id:'line2', title:'خط تغليف 1 (Packaging 1)', metrics:[
+      { id:'l2_1', name:'الإنتاج (كجم)', unit:'kg', exceedable:true, plan:'60,000', actual:'58,800', dir:'up', basis:'eff', effMode:'auto', pctGood:5, pctWarn:15 },
+      { id:'l2_2', name:'الكفاءة (%)', unit:'%', plan:'85', actual:'88', dir:'up', basis:'eff', effMode:'auto', pctGood:5, pctWarn:15 },
+      { id:'l2_3', name:'Product Waste (%)', unit:'%', plan:'1', planSign:'≥', actual:'0.3', actualSign:'', signable:true, eff:'', dir:'down', basis:'actual', effMode:'manual', pctGood:5, pctWarn:15 },
+      { id:'l2_4', name:'Downtime (د)', unit:'min', plan:'25', actual:'-', eff:'', dir:'down', basis:'actual', effMode:'manual', pctGood:5, pctWarn:15 },
+    ]},
+    { id:'line1', title:'خط تغليف 2 (Packaging 2)', metrics:[
+      { id:'l1_1', name:'الإنتاج (كجم)', unit:'kg', exceedable:true, plan:'40,000', actual:'50,300', dir:'up', basis:'eff', effMode:'auto', pctGood:5, pctWarn:15 },
+      { id:'l1_2', name:'الكفاءة (%)', unit:'%', plan:'82', actual:'86', dir:'up', basis:'eff', effMode:'auto', pctGood:5, pctWarn:15 },
+      { id:'l1_3', name:'Film Waste (%)', unit:'%', plan:'1', planSign:'≥', actual:'0.5', actualSign:'', signable:true, eff:'', dir:'down', basis:'actual', effMode:'manual', pctGood:5, pctWarn:15 },
+      { id:'l1_4', name:'Downtime (د)', unit:'min', plan:'50', actual:'-', eff:'', dir:'down', basis:'actual', effMode:'manual', pctGood:5, pctWarn:15 },
+    ]},
+  ],
+  meta: { date:'2024-05-21', shift:'الصباحية', dayName:'الثلاثاء' },
+  tagline: 'الجودة - السلامة - الكفاءة - الالتزام ... نحو أداء أفضل كل يوم',
+  history: [], // بيتملى من جوجل شيت (تبويب History) — سجل حقيقي يوم بيوم
+};
+
+/* ==== إعداد الاتصال بجوجل شيت ====
+   الرابط ده هو الافتراضي المحفوظ داخل الملف نفسه، فهيفضل موجود حتى لو اتفتح
+   الملف على أي جهاز/متصفح تاني من غير ما تحتاج تلصقه تاني. */
+const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbw0t2TLvcIIM67deru5fVmbrbbrhAby_sRwKYgglveBb6Cu56fg41f20rRM3uLqdFXM/exec';
+/* لو غيّرت الرابط من شاشة "ربط جوجل شيت" بيتحفظ كمان في localStorage الخاص
+   بالمتصفح، وبيبقى هو الأساس بعد كده (يفضل ثابت حتى لو قفلت وفتحت الملف). */
+let lastLoginPassword = '';        // مش بيتخزن في أي مكان دائم — للذاكرة بس عشان تجديد التوكن
+let sheetApiUrl = localStorage.getItem('rl_sheet_api_url') || RL_CONFIG.SHEET_API_URL || SHEET_API_URL;
+
+const DAY_NAMES = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+
+/* ==== مفاتيح التخزين والمتغيرات المشتركة (لازم تتعرّف من أول السكربت لأن أول رسم
+   للصفحة بيحصل قبل قسم المستخدمين والصلاحيات اللي تحت) ==== */
+var USERS_KEY   = 'rl_users_v1';
+var SESSION_KEY = 'rl_session_v1';
+var AUDIT_KEY   = 'rl_audit_v1';
+var SNAP_KEY    = 'rl_snapshots_v1';
+var ORDER_KEY   = 'rl_card_order_v1';
+var SESSION_HOURS = 12;      // مدة الجلسة
+var IDLE_MINUTES  = 30;      // خروج تلقائي عند السكون
+var MAX_FAILED    = 5;       // قفل مؤقت بعد 5 محاولات فاشلة
+var LOCK_MINUTES  = 5;
+var lastSyncAt = 0;          // آخر مزامنة ناجحة مع الشيت
+/* مفتاح الكتابة المشترك — لازم يبقى نفس القيمة الموجودة في ملف apps-script.gs.
+   غيّره لقيمة طويلة عشوائية قبل أي نشر، وده اللي بيمنع أي حد من برّه إنه يكتب في الشيت. */
+/* ملاحظة أمان مهمة (خصوصًا لو المشروع مرفوع على GitHub):
+   مفيش أي مفتاح أو باسورد متخزن في الكود. رابط الـ Web App ومفتاح الكتابة
+   بيتكتبوا مرة واحدة من "ربط جوجل شيت" وبيتخزنوا على الجهاز نفسه (localStorage).
+   ولو حبيت تحط قيم افتراضية لجهاز معيّن، حطها في ملف config.js المحلي
+   (اللي مرفوع في .gitignore) على الشكل ده:
+     window.RL_CONFIG = { SHEET_API_URL:'https://.../exec', WRITE_KEY:'...' }; */
+
+var users = [];
+var session = null;
+var editingUser = null;      // اسم المستخدم اللي بيتعدّل حاليًا في شاشة المستخدمين
+var idleTimer = null;
+var SHIFT_ORDER = { 'الصباحية':1, 'المسائية':2, 'الليلية':3 };
+var FIELD_LABEL = { plan:'المخطط', target:'المستهدف', actual:'الفعلي', eff:'الكفاءة',
+  name:'اسم المؤشر',
+  pctGood:'نسبة ضمن المستهدف %', pctWarn:'نسبة المتابعة %', targetSign:'علامة المستهدف', planSign:'علامة المخطط', actualSign:'علامة الفعلي' };
+
+
+function parseNum(str){
+  if(str === undefined || str === null) return NaN;
+  const m = String(str).replace(/,/g,'').match(/-?\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : NaN;
+}
+/* ================== نظام الحالة الموحّد: نسبة الانحراف عن المستهدف ==================
+   الانحراف = (الفرق بين الفعلي والمستهدف ÷ المستهدف) × 100، بإشارة موجبة لو في
+   الاتجاه السيئ وسالبة لو أحسن من المستهدف. الحالة:
+     انحراف ≤ pctGood  →  ضمن المستهدف
+     انحراف ≤ pctWarn  →  يحتاج متابعة
+     أكتر من كده        →  خارج المستهدف
+   ولو المستهدف صفر (زي "مخاطر مفتوحة = 0") النسبة مالهاش معنى، فبنقارن مباشرة:
+   صفر = ضمن المستهدف، وأي رقم في الاتجاه السيئ = خارج المستهدف. */
+var DEFAULT_PCT = { good:5, warn:15 };
+function metricPct(m){
+  const g = parseFloat(m.pctGood), w = parseFloat(m.pctWarn);
+  return { good: isNaN(g) ? DEFAULT_PCT.good : g, warn: isNaN(w) ? DEFAULT_PCT.warn : w };
+}
+function devPct(target, actual, dir){
+  const t = safeNum(target), a = (typeof actual === 'number') ? actual : safeNum(actual);
+  if(isNaN(t) || isNaN(a)) return NaN;
+  const diff = (dir === 'down') ? (a - t) : (t - a);   // موجب = في الاتجاه السيئ
+  if(t === 0) return diff === 0 ? 0 : (diff > 0 ? Infinity : -Infinity);
+  return (diff / Math.abs(t)) * 100;
+}
+/* بترجّع الحالة + مقدار الانحراف + هل الرقم فوق المستهدف (تميّز إضافي) */
+var EXCEED_MARGIN = 0.5;   // تجاوز أقل من نص في المية بنعتبره "على المستهدف" مش "فوقه"
+/* "فوق المستهدف" (النجمة) بيتحسب لمؤشرات كمية الإنتاج بس — الإنتاج بالكيلو في الخطوط،
+   وإجمالي الإنتاج، وعدد الحاويات المشحونة — لأنها هي اللي زيادتها عن المستهدف إنجاز.
+   أي مؤشر تاني (كفاءة، waste، توقفات، مخالفات...) بياخد ✓ ضمن المستهدف عادي.
+   عايز تضيف مؤشر تاني للنجمة؟ ضيف له exceedable:true في بياناته فوق. */
+function statusInfo(m, targetField){
+  const target = m[targetField];
+  const actualVal = comparableActual(m);          // الهالك بيتقارن بنسبته المحسوبة
+  if(isNaN(actualVal) || isBlank(target)) return { st:'na', dev:NaN, raw:NaN, exceed:false };
+  const d = devPct(target, actualVal, m.dir);
+  if(isNaN(d)) return { st:'na', dev:NaN, raw:NaN, exceed:false };
+  /* raw = فرق الرقم عن المستهدف بإشارته الحقيقية (فوق/تحت)، مستقل عن كون ده حلو ولا وحش */
+  const t = safeNum(target), a = actualVal;
+  const raw = (!isFinite(t) || t === 0) ? (a === 0 ? 0 : (a > 0 ? Infinity : -Infinity)) : ((a - t) / Math.abs(t)) * 100;
+  const lim = metricPct(m);
+  let st = d <= lim.good ? 'good' : (d <= lim.warn ? 'warn' : 'bad');
+  if(m.override && m.override !== 'auto') st = m.override;
+  return { st, dev:d, raw, exceed: !!m.exceedable && st === 'good' && d < -EXCEED_MARGIN };
+}
+function autoStatus(target, actual, dir){
+  if(!actual || actual === '-') return 'na';
+  const tNum = parseNum(target), aNum = parseNum(actual);
+  if(isNaN(tNum) || isNaN(aNum)) return 'na';
+  if(dir === 'down'){
+    // lower actual than target/plan is good (waste, downtime, incidents, violations...)
+    if(aNum <= tNum) return 'good';
+    if(aNum <= tNum*1.2) return 'warn';
+    return 'bad';
+  } else {
+    // higher actual than target/plan is good (production, efficiency, OTIF, GMP...)
+    if(aNum >= tNum) return 'good';
+    if(aNum >= tNum*0.95) return 'warn';
+    return 'bad';
+  }
+}
+function effectiveStatus(m, targetField){
+  return statusInfo(m, targetField).st;
+}
+
+/* ================== خطوط التعبئة والتغليف: الكفاءة + الحالة ==================
+   1) عمود الكفاءة بيتحسب أوتوماتيك = (الفعلي ÷ المخطط) × 100 — مفيش إدخال يدوي.
+   2) الحالة بتتحسب من الحدود اللي المستخدم بيحددها في لوحة التعديل:
+      - مؤشر بتجاهه 'up'  (الأعلى أحسن): ضمن المستهدف لو ≥ حد المستهدف، متابعة لو ≥ حد المتابعة، غير كدا خارج المستهدف.
+      - مؤشر بتجاهه 'down' (الأقل أحسن): ضمن المستهدف لو ≤ حد المستهدف، متابعة لو ≤ حد المتابعة، غير كدا خارج المستهدف.
+   3) Downtime مالوش مخطط، فحالته بتتحسب على القيمة الفعلية بالدقايق (basis:'actual'). */
+const UNIT_SUFFIX = { '%':'%', kg:'', min:'' };
+
+/* ---------- قراءة أرقام آمنة: مابتسمحش بـ NaN/Infinity تكسر أي حساب ---------- */
+function safeNum(v){
+  if(v === null || v === undefined) return NaN;
+  const t = String(v).trim();
+  if(t === '' || t === '-' || t === '—') return NaN;
+  const n = parseNum(t);
+  return (typeof n === 'number' && isFinite(n)) ? n : NaN;
+}
+function metricById(id){
+  if(!id) return null;
+  return allMetricsFlat().find(x=> x.id === id) || null;
+}
+/* المؤشرات اللي بيظهر جانبها وسام الفرق عن المستهدف:
+   إجمالي الإنتاج، والإنتاج بالكيلو لكل خط، والكفاءة (العامة وللخطوط) — وبس.
+   أي مؤشر تاني (هالك / توقفات / مخالفات / حاويات ...) بيظهر رقمه من غير وسام. */
+/* القيمة اللي بتتقارن بالمستهدف */
+function comparableActual(m){
+  return safeNum(m ? m.actual : null);
+}
+var BADGE_METRICS = ['p1','p2','l4_1','l4_2','l3_1','l3_2','l2_1','l2_2','l1_1','l1_2'];
+function badgeVisible(m){
+  return !!m && BADGE_METRICS.indexOf(m.id) !== -1;
+}
+function isBlank(v){
+  return v === undefined || v === null || String(v).trim() === '' || String(v).trim() === '-';
+}
+/* عرض القيمة في الجدول: الرقم + علامة % ثابتة (لو المؤشر نسبة مئوية) + علامة المقارنة المختارة */
+const SIGN_OPTIONS = ['', '≥', '>', '≤', '<'];
+function fmtLineValue(v, unit, sign){
+  if(isBlank(v)) return '—';
+  let out = String(v).replace(/[≥≤><]/g, '').trim();
+  if(unit === '%' && !out.includes('%')) out += '%';
+  if(sign) out += ' ' + sign;
+  return out;
+}
+/* القيمة وهي داخلة في خانة التعديل: رقم صافي بدون % أو رموز — عشان خانة المخطط
+   ماتظهرش كنسبة مئوية وانت بتكتب فيها */
+function cleanForInput(v){
+  if(v === undefined || v === null) return '';
+  return String(v).replace(/[%≥≤]/g, '').replace(/\s+/g, ' ').trim();
+}
+/* نسبة الكفاءة المحسوبة كرقم (أو NaN لو مش قابلة للحساب) */
+function effAutoPct(m){
+  if(m.noPlan) return NaN;
+  const p = parseNum(m.plan), a = parseNum(m.actual);
+  if(isNaN(p) || isNaN(a) || p === 0 || isBlank(m.actual) || isBlank(m.plan)) return NaN;
+  return (a / p) * 100;
+}
+/* الكفاءة الفعلية المستخدمة: يدوي لو المستخدم كتبها، وإلا محسوبة */
+function effPct(m){
+  if(m.effMode === 'manual'){
+    const manual = parseNum(m.eff);
+    if(!isNaN(manual) && !isBlank(m.eff)) return manual;
+    return NaN;                            // يدوي وفاضي = مفيش كفاءة
+  }
+  return effAutoPct(m);
+}
+/* عمود "الكفاءة":
+   • لو المؤشر نفسه نسبة مئوية (زي صف الكفاءة): الكفاءة = فرق النقاط بين الفعلي
+     والمخطط (الفعلي − المخطط)، فلو كاتب أرقام صحيحة بتطلع رقم صحيح — مش كسور.
+     مثال: مخطط 85% وفعلي 87% → +2% (يعني أعلى من المخطط بنقطتين).
+   • لو المؤشر كمية (كجم): الكفاءة = (الفعلي ÷ المخطط) × 100 مقرّبة لأقرب رقم صحيح.
+   • ولو الكفاءة يدوية، بتظهر زي ما هي مكتوبة.
+   (عايز الفرق بالمقلوب — المخطط ناقص الفعلي؟ اقلب السطر اللي فيه effPointDiff.) */
+function effPointDiff(m){
+  const pl = safeNum(m.plan), ac = safeNum(m.actual);
+  if(isNaN(pl) || isNaN(ac)) return NaN;
+  return ac - pl;                      // الفعلي − المخطط
+}
+function effDisplay(m){
+  if(m.effMode === 'manual'){
+    if(isBlank(m.eff)) return '—';
+    let out = String(m.eff).replace(/[≥≤><]/g, '').trim();
+    if(!out.includes('%')) out += '%';
+    return out;
+  }
+  if(m.unit === '%'){                  // مؤشر نسبة مئوية → فرق نقاط
+    const d = effPointDiff(m);
+    if(isNaN(d)) return '—';
+    const r = Math.round(d * 100) / 100;                 // بنشيل أي كسور وهمية
+    return (r > 0 ? '+' : (r < 0 ? '-' : '')) + Math.abs(r) + '%';
+  }
+  const v = effAutoPct(m);
+  if(isNaN(v)) return '—';
+  return Math.round(v) + '%';          // كمية → نسبة تحقيق كرقم صحيح
+}
+/* الحدود كلها بقت نسبة من المستهدف (شوف metricPct فوق) */
+/* حالة مؤشر الخط: نفس نظام الأقسام — نسبة الانحراف عن المخطط */
+function lineStatus(m){
+  return statusInfo(m, 'plan').st;
+}
+/* لمبة عنوان الخط = أسوأ حالة بين مؤشراته (بقت تلقائية بدل ما تتحدد بالإيد) */
+function lineDot(line){
+  const sts = line.metrics.map(lineStatus);
+  if(sts.includes('bad')) return 'bad';
+  if(sts.includes('warn')) return 'warn';
+  if(sts.includes('good')) return 'good';
+  return 'warn';
+}
+/* النِسَب بتتحفظ محليًا كمان عشان تفضل موجودة لو الشيت مش بيخزّنها */
+function allMetricsForPct(){
+  return [
+    ...state.kpiSections.flatMap(x=>x.metrics),
+    ...state.lines.flatMap(x=>x.metrics)
+  ];
+}
+function savePctLimits(){
+  const map = {};
+  allMetricsForPct().forEach(m=>{ map[m.id] = { g:m.pctGood, w:m.pctWarn }; });
+  try{ localStorage.setItem('rl_pct_v1', JSON.stringify(map)); }catch(e){ /* تجاهل */ }
+}
+function loadPctLimits(){
+  let map = {};
+  try{ map = JSON.parse(localStorage.getItem('rl_pct_v1') || '{}'); }catch(e){ return; }
+  allMetricsForPct().forEach(m=>{
+    const sv = map[m.id]; if(!sv) return;
+    if(sv.g !== undefined && sv.g !== '') m.pctGood = parseFloat(sv.g);
+    if(sv.w !== undefined && sv.w !== '') m.pctWarn = parseFloat(sv.w);
+  });
+}
+loadPctLimits();
+
+const STATUS_ICON = { good:'✓', warn:'!', bad:'✕', na:'-' };
+
+/* ================== إظهار / إخفاء المربعات ==================
+   بيتحفظ بين مرات فتح الملف عشان مضطرش تخفي نفس المربع كل مرة. */
+let cardVisibility = {};
+try{ cardVisibility = JSON.parse(localStorage.getItem('rl_card_visibility') || '{}'); }catch(e){ cardVisibility = {}; }
+function isBoxVisible(id){ return cardVisibility[id] !== false; }
+function saveCardVisibility(){ try{ localStorage.setItem('rl_card_visibility', JSON.stringify(cardVisibility)); }catch(e){} }
+function getToggleableBoxes(){
+  return [
+    ...state.kpiSections.map(s=>({ id:s.id, title:s.title })),
+    ...state.lines.map(l=>({ id:l.id, title:l.title })),
+    { id:'chart_containers', title:'أداء الحاويات المشحونة يوميًا' },
+    { id:'chart_trend', title:'مؤشرات الاتجاه (Trend)' },
+  ];
+}
+function buildVisibilityChecklist(){
+  const wrap = document.getElementById('visibilityChecklist');
+  if(!wrap) return;
+  wrap.innerHTML = getToggleableBoxes().map(b=> `
+    <label class="visibility-item">
+      <input type="checkbox" data-vis-id="${b.id}" ${isBoxVisible(b.id) ? 'checked' : ''}>
+      <span>${b.title}</span>
+    </label>`).join('');
+  wrap.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.onchange = ()=>{
+      cardVisibility[cb.dataset.visId] = cb.checked;
+      saveCardVisibility();
+      renderAll();
+    };
+  });
+}
+document.querySelector('[data-open="layoutOverlay"]').addEventListener('click', buildVisibilityChecklist);
+
+function applyBoxVisibility(){
+  const barCard = document.getElementById('chartCardContainers');
+  const trendCard = document.getElementById('chartCardTrend');
+  if(barCard) barCard.style.display = isBoxVisible('chart_containers') ? '' : 'none';
+  if(trendCard) trendCard.style.display = isBoxVisible('chart_trend') ? '' : 'none';
+  const chartsRow = document.getElementById('chartsRow');
+  if(chartsRow){
+    const anyChartVisible = isBoxVisible('chart_containers') || isBoxVisible('chart_trend');
+    chartsRow.style.display = anyChartVisible ? '' : 'none';
+  }
+}
+
+/* ================== RENDER ================== */
+function renderKpiRow(){
+  const wrap = document.getElementById('kpiRow');
+  wrap.innerHTML = '';
+  state.kpiSections.forEach(sec=>{
+    if(!isBoxVisible(sec.id)) return; // مخفي — نسيبه ميتضافش خالص عشان الباقي ياخد مكانه
+    const card = document.createElement('div');
+    card.className = 'card'; card.dataset.id = sec.id;
+    card.innerHTML = `
+      <div class="card-head"><h3 title="${sec.title}">${sec.title}</h3><span class="info-dot">i</span></div>
+      <table class="metric-table">
+        <thead><tr><th>مؤشر الأداء</th><th>المستهدف</th><th>الفعلي</th><th>الحالة</th></tr></thead>
+        <tbody>
+          ${sec.metrics.map(m=>{ const inf = statusInfo(m,'target'); return `
+            <tr>
+              <td title="${m.name}">${m.name}</td>
+              <td class="dim">${fmtLineValue(m.target, m.unit, m.targetSign)}</td>
+              <td class="dim ${inf.exceed ? 'val-exceed' : ''}"><span class="val-wrap">${fmtLineValue(m.actual, m.unit, m.actualSign)}${devBadge(inf, m)}</span></td>
+              <td>${statusChip(inf)}</td>
+            </tr>`; }).join('')}
+        </tbody>
+      </table>`;
+    wrap.appendChild(card);
+  });
+  wrap.style.display = state.kpiSections.some(s=>isBoxVisible(s.id)) ? '' : 'none';
+}
+
+function renderLinesRow(){
+  const wrap = document.getElementById('linesRow');
+  wrap.innerHTML = '';
+  state.lines.forEach(line=>{
+    if(!isBoxVisible(line.id)) return; // مخفي — نسيبه ميتضافش خالص عشان الباقي ياخد مكانه
+    const card = document.createElement('div');
+    card.className = 'card line-card'; card.dataset.id = line.id;
+    card.innerHTML = `
+      <div class="card-head"><h3><span class="line-dot ${lineDot(line)}"></span><span class="line-title" title="${line.title}">${line.title}</span></h3></div>
+      <table class="metric-table">
+        <thead><tr><th>المؤشر</th><th>المخطط</th><th>الفعلي</th><th>الكفاءة</th><th>الحالة</th></tr></thead>
+        <tbody>
+          ${line.metrics.map(m=>{ const inf = statusInfo(m,'plan'); return `
+            <tr>
+              <td title="${m.name}">${m.name}</td>
+              <td class="dim">${m.noPlan ? '—' : fmtLineValue(m.plan, m.unit, m.planSign)}</td>
+              <td class="dim ${inf.exceed ? 'val-exceed' : ''}"><span class="val-wrap">${fmtLineValue(m.actual, m.unit, m.actualSign)}${devBadge(inf, m)}</span></td>
+              <td class="dim">${effDisplay(m)}</td>
+              <td>${statusChip(inf)}</td>
+            </tr>`; }).join('')}
+        </tbody>
+      </table>
+      ${sparkForLine(line)}`;
+    wrap.appendChild(card);
+  });
+  const anyLineVisible = state.lines.some(l=>isBoxVisible(l.id));
+  wrap.style.display = anyLineVisible ? '' : 'none';
+  const sectionBar = document.getElementById('linesSectionBar');
+  if(sectionBar) sectionBar.style.display = anyLineVisible ? '' : 'none';
+}
+
+function renderFooter(){
+  document.getElementById('footerTagline').textContent = state.tagline;
+}
+
+/* ---- Lightweight inline SVG charts (no external library — fully offline-safe) ---- */
+function buildBarSVG(labels, values){
+  const w=560, h=190, padL=28, padR=10, padT=18, padB=26;
+  const max = Math.max(1, ...values);
+  const gap = (w-padL-padR)/values.length;
+  const bw = gap*0.55;
+  let bars = '';
+  values.forEach((v,i)=>{
+    const bh = (h-padT-padB) * (v/max);
+    const x = padL + i*gap + (gap-bw)/2;
+    const y = h-padB-bh;
+    bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="4" fill="#8bc63e"/>
+      <text x="${(x+bw/2).toFixed(1)}" y="${(y-6).toFixed(1)}" text-anchor="middle" font-size="10" fill="#8ba0af">${v}</text>
+      <text x="${(x+bw/2).toFixed(1)}" y="${h-8}" text-anchor="middle" font-size="9" fill="#8ba0af">${labels[i]}</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:190px;display:block;">${bars}</svg>`;
+}
+function buildLineSVG(labels, series){
+  const w=560, h=190, padL=28, padR=10, padT=20, padB=26;
+  const allVals = series.flatMap(s=>s.values);
+  const max = Math.max(10, ...allVals), min = Math.min(0, ...allVals);
+  const n = labels.length;
+  const gap = n>1 ? (w-padL-padR)/(n-1) : 0;
+  const scaleY = v => h-padB - ((v-min)/((max-min)||1))*(h-padT-padB);
+  let out = '';
+  series.forEach(s=>{
+    const pts = s.values.map((v,i)=> `${(padL+i*gap).toFixed(1)},${scaleY(v).toFixed(1)}`).join(' ');
+    out += `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2.5"/>`;
+    s.values.forEach((v,i)=>{ out += `<circle cx="${(padL+i*gap).toFixed(1)}" cy="${scaleY(v).toFixed(1)}" r="3" fill="${s.color}"/>`; });
+  });
+  labels.forEach((d,i)=>{ out += `<text x="${(padL+i*gap).toFixed(1)}" y="${h-8}" text-anchor="middle" font-size="9" fill="#8ba0af">${d}</text>`; });
+  const legend = series.map((s,i)=> `<circle cx="${padL+i*110}" cy="10" r="4" fill="${s.color}"/><text x="${padL+i*110+8}" y="14" font-size="9" fill="#8ba0af">${s.label}</text>`).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:190px;display:block;">${legend}${out}</svg>`;
+}
+function renderHistoryCharts(){
+  const barWrap = document.getElementById('barChartWrap');
+  const trendWrap = document.getElementById('trendChartWrap');
+  if(!barWrap || !trendWrap) return;
+  if(!state.history || state.history.length === 0){
+    const emptyMsg = '<div class="chart-empty">لسه مفيش سجل تاريخي كفاية — هيتملى تلقائي كل ما تحفظ بيانات يوم جديد (لازم ربط جوجل شيت شغّال).</div>';
+    barWrap.innerHTML = emptyMsg;
+    trendWrap.innerHTML = emptyMsg;
+    return;
+  }
+  const sorted = [...state.history].sort((a,b)=> a.date.localeCompare(b.date));
+  const labels = sorted.map(h=> h.date.slice(5).split('-').reverse().join('/'));
+  const containers = sorted.map(h=> parseNum(h.containers) || 0);
+  const efficiency = sorted.map(h=> parseNum(h.efficiency) || 0);
+  const waste = sorted.map(h=> parseNum(h.waste) || 0);
+  const rework = sorted.map(h=> parseNum(h.rework) || 0);
+  barWrap.innerHTML = buildBarSVG(labels, containers);
+  trendWrap.innerHTML = buildLineSVG(labels, [
+    { label:'الكفاءة %', color:'#12a695', values:efficiency },
+    { label:'Waste %', color:'#f2a93c', values:waste },
+    { label:'Rework %', color:'#ef4444', values:rework },
+  ]);
+}
+
+function renderAll(){
+  renderKpiRow(); renderLinesRow(); renderFooter(); renderHistoryCharts(); applyBoxVisibility();
+  applyCardOrder();      // ترتيب السحب المحفوظ لازم يتطبق قبل ربط أحداث السحب
+  setupDrag();
+  renderHeaderChips();
+  if(typeof reapplyRotationIfActive === 'function') reapplyRotationIfActive(); // لازم بعد renderKpiRow/renderLinesRow/applyBoxVisibility عشان يلغي الـdisplay اللي هما رجعوه ويفرض عرض صف التدوير الحالي بس
+  if(typeof applyFitScreen === 'function') applyFitScreen();
+}
+
+/* ================== MODALS ================== */
+function openOverlay(id){ document.getElementById(id).classList.add('open'); }
+function closeOverlay(id){ document.getElementById(id).classList.remove('open'); }
+
+document.getElementById('openControlBtn').onclick = ()=> openOverlay('mainOverlay');
+document.querySelectorAll('[data-close]').forEach(el=>{
+  el.onclick = ()=> closeOverlay(el.dataset.close);
+});
+document.querySelectorAll('.overlay').forEach(ov=>{
+  ov.addEventListener('click', e=>{ if(e.target === ov) ov.classList.remove('open'); });
+});
+/* إعدادات العرض (الترتيب، الثيمات، ملء الشاشة، التناوب) مفتوحة للكل بدون دخول —
+   والشاشات اللي بتغيّر بيانات أو إعدادات مشتركة هي بس اللي بتطلب تسجيل دخول. */
+var PROTECTED_PANELS = ['editOverlay','sheetOverlay','usersOverlay','auditOverlay','scoreOverlay','shiftOverlay','clearOverlay'];
+var pendingTile = null;
+function openLoginFor(tileEl){
+  pendingTile = tileEl || null;
+  const hint = document.getElementById('firstRunHint');
+  const stillDefault = users.some(u=> u.u === 'admin' && u.mustChange);
+  if(hint) hint.innerHTML = stillDefault
+    ? 'أول تشغيل: استخدم حساب الأدمن الافتراضي الموجود في دليل التشغيل، وغيّر كلمة مروره فورًا.'
+    : '';
+  const msg = document.getElementById('loginMsg'); if(msg) msg.textContent = '';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  closeOverlay('mainOverlay');
+  openOverlay('loginOverlay');
+  setTimeout(()=>{ const u = document.getElementById('loginUser'); if(u) u.focus(); }, 120);
+}
+document.querySelectorAll('[data-open]').forEach(el=>{
+  el.onclick = ()=>{
+    const target = el.dataset.open;
+    if(PROTECTED_PANELS.indexOf(target) !== -1 && !isLoggedIn()){ openLoginFor(el); return; }
+    if(isLoggedIn()) resetIdleTimer();
+    closeOverlay('mainOverlay'); openOverlay(target);
+  };
+});
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ---- TV full screen ---- */
+document.getElementById('tvTile').onclick = ()=>{
+  const el = document.documentElement;
+  if(!document.fullscreenElement){
+    (el.requestFullscreen && el.requestFullscreen()) ;
+    document.body.classList.add('tv-mode');
+  }else{
+    document.exitFullscreen && document.exitFullscreen();
+    document.body.classList.remove('tv-mode');
+  }
+  closeOverlay('mainOverlay');
+};
+document.addEventListener('fullscreenchange', ()=>{
+  if(!document.fullscreenElement) document.body.classList.remove('tv-mode');
+});
+
+/* ================== FIT TO SCREEN (KIOSK MODE) ==================
+   بيصغّر كل المحتوى (كارت + خطوط) عشان يتظبط في ارتفاع الشاشة من غير Scroll —
+   مفيد للعرض على شاشة تلفزيون/كشك ثابتة. بيحفظ اختيارك ويعيد حساب المقاس
+   تلقائيًا لما تعدّل بيانات أو يتغير حجم الشاشة. */
+const fitWrap = document.getElementById('fitWrap');
+const fitScreenTile = document.getElementById('fitScreenTile');
+/* ملحوظة: احتواء الشاشة دلوقتي مش بيتحفظ بين مرات فتح الملف عمدًا —
+   كل مرة تفتح الملف بيرجع للوضع العادي، وتفعّله يدوي وقت ما تحب من لوحة التحكم.
+   ده اللي بيمنع أي مشكلة عرض تحصل لو الملف اتفتح تاني والخط لسه بيتحمّل. */
+let fitScreenEnabled = false;
+
+function applyFitScreen(){
+  if(!fitWrap) return;
+  if(rotationEnabled){
+    // وضع التدوير له نظام ملء الشاشة الخاص بيه (لكل صف لوحده) — نمنع التعارض بينه وبين ده
+    fitWrap.style.transform = '';
+    document.body.classList.remove('kiosk-fit');
+    return;
+  }
+  if(!fitScreenEnabled){
+    fitWrap.style.transform = '';
+    document.body.classList.remove('kiosk-fit');
+    return;
+  }
+  document.body.classList.add('kiosk-fit');
+  fitWrap.style.transform = 'none'; // نرجّع الحجم الطبيعي لحظة القياس عشان القياس يبقى دقيق
+  const naturalWidth = fitWrap.scrollWidth;
+  const naturalHeight = fitWrap.scrollHeight;
+  if(!naturalWidth || !naturalHeight) return; // لسه مفيش محتوى اتقاس، متطبقش سكيل غلط
+  // Fit + Stretch: بيمطّط أفقيًا ورأسيًا لوحده عشان يملا الشاشة بالكامل (تحديدًا لشاشة تليفزيون بمقاس ثابت)
+  const scaleX = window.innerWidth / naturalWidth;
+  const scaleY = window.innerHeight / naturalHeight;
+  fitWrap.style.transform = `scale(${scaleX}, ${scaleY})`;
+}
+
+function setFitScreen(on){
+  fitScreenEnabled = on;
+  fitScreenTile.classList.toggle('on', on);
+  const stateEl = fitScreenTile.querySelector('.tile-state');
+  if(stateEl) stateEl.textContent = on ? 'مفعّل' : 'غير مفعّل';
+  applyFitScreen();
+  // نعيد الحساب تاني بعد ما الخط Cairo يخلص تحميل فعليًا (بيغيّر ارتفاع النص)
+  if(on && document.fonts && document.fonts.ready){
+    document.fonts.ready.then(()=>{ if(fitScreenEnabled) applyFitScreen(); });
+  }
+}
+
+if(fitScreenTile){
+  fitScreenTile.onclick = ()=>{ setFitScreen(!fitScreenEnabled); closeOverlay('mainOverlay'); showToast(fitScreenEnabled ? 'تم تفعيل ملء الشاشة بالكامل' : 'تم إلغاء ملء الشاشة'); };
+}
+let fitResizeTimer;
+window.addEventListener('resize', ()=>{
+  clearTimeout(fitResizeTimer);
+  fitResizeTimer = setTimeout(()=>{ if(fitScreenEnabled) applyFitScreen(); }, 150);
+});
+window.addEventListener('load', ()=>{ if(fitScreenEnabled) applyFitScreen(); }); // إعادة حساب بعد تحميل الخط Cairo كامل
+
+/* ================== ROW ROTATION (TV/KIOSK CAROUSEL) ==================
+   بتعرض كل "صف" (KPI / خطوط الإنتاج / الرسوم البيانية) لوحده لمدة X ثانية
+   ثم تنتقل للصف اللي بعده، وهكذا بالتناوب — وبتتخطى تلقائيًا أي صف
+   مفيش فيه ولا مربع ظاهر (كله متشال من قايمة إظهار/إخفاء المربعات).
+   بتتحفظ حالة التفعيل والمدة بين مرات فتح الملف. */
+const rotationTile = document.getElementById('rotationTile');
+const rotationIntervalInput = document.getElementById('rotationInterval');
+let rotationEnabled = false;
+let rotationSeconds = 10;
+let rotationTimer = null;
+let currentShownGroupId = null;
+
+try{
+  rotationEnabled = localStorage.getItem('rl_rotation_enabled') === '1';
+  const savedSec = parseInt(localStorage.getItem('rl_rotation_interval'), 10);
+  if(!isNaN(savedSec) && savedSec >= 3) rotationSeconds = savedSec;
+}catch(e){ /* لو الكاش تالف، نستخدم القيم الافتراضية */ }
+
+/* تعريف الصفوف اللي بيتم التدوير بينها — كل صف عنصره في الـDOM + دالة تتأكد
+   هل فيه أي مربع ظاهر جواه فعليًا (مبنية على حالة إظهار/إخفاء المربعات الحقيقية،
+   مش على display الحالي في الـDOM، عشان التدوير نفسه بيغيّر الـdisplay وده يبوّظ
+   الحساب لو اعتمدنا عليه). ده الحل لمشكلة كانت موجودة قبل كدا. */
+function getRotationGroups(){
+  return [
+    {
+      id:'kpi',
+      els:[document.getElementById('rotGroupKpi')],
+      hasVisibleContent: ()=> state.kpiSections.some(s=>isBoxVisible(s.id)),
+    },
+    {
+      id:'lines',
+      els:[document.getElementById('rotGroupLines')],
+      hasVisibleContent: ()=> state.lines.some(l=>isBoxVisible(l.id)),
+    },
+    {
+      id:'charts',
+      els:[document.getElementById('rotGroupCharts')],
+      hasVisibleContent: ()=> isBoxVisible('chart_containers') || isBoxVisible('chart_trend'),
+    },
+  ];
+}
+
+/* بيعرض صف واحد بس (بالـid بتاعه) ويخفي الباقي — مايشيلش المحتوى من الـDOM،
+   بس بيتحكم في display عشان التبديل يبقى سريع وسلس، وبعدين بيكبّر الصف
+   المعروض عشان ياخد المساحة الفاضية بالكامل (fitActiveRotationGroup). */
+function applyRotationDisplay(activeGroupId){
+  getRotationGroups().forEach(g=>{
+    const show = g.id === activeGroupId;
+    g.els.forEach(el=>{ if(el) el.style.display = show ? '' : 'none'; });
+  });
+  fitActiveRotationGroup();
+}
+
+/* بتكبّر (transform: scale) الصف المعروض حاليًا بس عشان يملا المساحة
+   الفاضية بين الهيدر وشريط "مفتاح الحالة"/الفوتر — من غير ما يأثر على
+   مكانهم، لأن ارتفاع المنطقة دي ثابت دايمًا (flex:1 في #rotationStage). */
+function fitActiveRotationGroup(){
+  if(!rotationEnabled) return;
+  const stage = document.getElementById('rotationStage');
+  const groupDef = getRotationGroups().find(g=> g.id === currentShownGroupId);
+  const el = groupDef && groupDef.els[0];
+  if(!stage || !el || el.style.display === 'none') return;
+  el.style.transform = 'none'; // نرجّع الحجم الطبيعي لحظة القياس عشان القياس يبقى دقيق
+  const naturalWidth = el.scrollWidth;
+  const naturalHeight = el.scrollHeight;
+  const stageWidth = stage.clientWidth;
+  const stageHeight = stage.clientHeight;
+  if(!naturalWidth || !naturalHeight || !stageWidth || !stageHeight) return; // لسه مفيش قياس دقيق متاح
+  const MAX_SCALE = 1.8; // حد أقصى للتكبير عشان صف بمحتوى قليل (زي الرسوم قبل ما يبقى فيه سجل تاريخي) ميطلعش نص عملاق ومشوّش
+  const scaleX = Math.min(stageWidth / naturalWidth, MAX_SCALE);
+  const scaleY = Math.min(stageHeight / naturalHeight, MAX_SCALE);
+  el.style.transform = `scale(${scaleX}, ${scaleY})`;
+}
+
+function nextRotationGroup(){
+  const groups = getRotationGroups();
+  const activeGroups = groups.filter(g=> g.hasVisibleContent());
+  if(activeGroups.length === 0){
+    // مفيش أي صف فيه مربعات ظاهرة أصلاً — نوقف التدوير تلقائيًا بدل ما نفضل نلف على الفاضي
+    showToast('لا توجد صفوف بها مربعات ظاهرة للتدوير بينها');
+    setRotation(false);
+    return;
+  }
+  let idx = activeGroups.findIndex(g=> g.id === currentShownGroupId);
+  idx = (idx + 1) % activeGroups.length;
+  currentShownGroupId = activeGroups[idx].id;
+  applyRotationDisplay(currentShownGroupId);
+}
+
+/* بتتنادى من جوه renderAll() عشان أي إعادة رسم دورية (مزامنة الشيت كل 20 ثانية،
+   حفظ تعديل يدوي، ...) ما تلغيش عرض التدوير الحالي — من غيرها التدوير هيرجع
+   يعرض كل الصفوف تاني في أول مزامنة جاية. */
+function reapplyRotationIfActive(){
+  if(!rotationEnabled) return;
+  const groups = getRotationGroups();
+  const activeGroups = groups.filter(g=> g.hasVisibleContent());
+  if(activeGroups.length === 0){ setRotation(false); return; }
+  // لو الصف المعروض حاليًا بقى مخفي (اتشالت مربعاته) بعد آخر تحديث، انتقل لأول صف متاح
+  if(!activeGroups.some(g=> g.id === currentShownGroupId)){
+    currentShownGroupId = activeGroups[0].id;
+  }
+  applyRotationDisplay(currentShownGroupId);
+}
+
+function setRotation(on){
+  rotationEnabled = on;
+  try{ localStorage.setItem('rl_rotation_enabled', on ? '1' : '0'); }catch(e){}
+  if(rotationTile) rotationTile.classList.toggle('on', on);
+  const stateEl = document.getElementById('rotationStateLabel');
+  if(stateEl) stateEl.textContent = on ? 'مفعّل' : 'غير مفعّل';
+  document.body.classList.toggle('rotation-active', on); // بيفعّل تخطيط ملء الشاشة الثابت (هيدر فوق + شريط وفوتر تحت بمكان ثابت)
+
+  if(rotationTimer){ clearInterval(rotationTimer); rotationTimer = null; }
+
+  if(on){
+    currentShownGroupId = null; // نبدأ من أول صف متاح
+    nextRotationGroup();
+    rotationTimer = setInterval(nextRotationGroup, rotationSeconds * 1000);
+  }else{
+    currentShownGroupId = null;
+    // نرجّع كل الصفوف تظهر حسب حالة إظهار/إخفاء المربعات العادية (مش التدوير) ونشيل أي تكبير كان مطبّق
+    getRotationGroups().forEach(g=>{ g.els.forEach(el=>{ if(el){ el.style.display = ''; el.style.transform = ''; } }); });
+    applyBoxVisibility(); renderKpiRow(); renderLinesRow();
+    if(typeof applyFitScreen === 'function') applyFitScreen(); // نرجّع وضع "ملء الشاشة" العادي لو كان مفعّل من قبل
+  }
+}
+
+let rotationResizeTimer;
+window.addEventListener('resize', ()=>{
+  clearTimeout(rotationResizeTimer);
+  rotationResizeTimer = setTimeout(()=>{ if(rotationEnabled) fitActiveRotationGroup(); }, 150);
+});
+if(document.fonts && document.fonts.ready){
+  document.fonts.ready.then(()=>{ if(rotationEnabled) fitActiveRotationGroup(); }); // إعادة حساب بعد ما خط Cairo يخلص تحميل (بيغيّر ارتفاع النص)
+}
+
+if(rotationTile){
+  rotationTile.onclick = ()=>{
+    setRotation(!rotationEnabled);
+    closeOverlay('mainOverlay');
+    showToast(rotationEnabled ? 'تم تفعيل التناوب بين الصفوف' : 'تم إلغاء التناوب بين الصفوف');
+  };
+}
+if(rotationIntervalInput){
+  rotationIntervalInput.value = rotationSeconds;
+  rotationIntervalInput.addEventListener('change', ()=>{
+    let v = parseInt(rotationIntervalInput.value, 10);
+    if(isNaN(v) || v < 3) v = 3; // حد أدنى 3 ثواني عشان نمنع وميض سريع مزعج
+    if(v > 300) v = 300;
+    rotationIntervalInput.value = v;
+    rotationSeconds = v;
+    try{ localStorage.setItem('rl_rotation_interval', String(v)); }catch(e){}
+    if(rotationEnabled){
+      // نعيد تشغيل التايمر بالمدة الجديدة من غير ما نقطع الصف المعروض حاليًا
+      if(rotationTimer) clearInterval(rotationTimer);
+      rotationTimer = setInterval(nextRotationGroup, rotationSeconds * 1000);
+    }
+  });
+}
+
+/* ================== BOLD TEXT TOGGLE ================== */
+const boldTextTile = document.getElementById('boldTextTile');
+let boldTextEnabled = true; // مفعّل افتراضيًا حسب المطلوب
+try{
+  const saved = localStorage.getItem('rl_bold_text');
+  if(saved !== null) boldTextEnabled = saved === '1';
+}catch(e){ /* لو الكاش تالف، نستخدم الافتراضي */ }
+
+function setBoldText(on){
+  boldTextEnabled = on;
+  try{ localStorage.setItem('rl_bold_text', on ? '1' : '0'); }catch(e){}
+  document.body.classList.toggle('bold-text', on);
+  if(boldTextTile) boldTextTile.classList.toggle('on', on);
+  const stateEl = document.getElementById('boldTextStateLabel');
+  if(stateEl) stateEl.textContent = on ? 'مفعّل' : 'غير مفعّل';
+}
+if(boldTextTile){
+  boldTextTile.onclick = ()=>{ setBoldText(!boldTextEnabled); closeOverlay('mainOverlay'); };
+}
+setBoldText(boldTextEnabled); // تطبيق الحالة (المحفوظة أو الافتراضية) فورًا عند تحميل الصفحة
+
+/* ================== THEMES ================== */
+const THEMES = {
+  teal: { name:'تركواز داكن (افتراضي)', vars:{
+    '--bg-app':'#0a121c', '--bg-glow':'#10202b', '--bg-panel':'#111c28', '--bg-card-head':'#182531',
+    '--surface-0':'#0d1620', '--surface-1':'#0f1a24', '--surface-2':'#0a141d',
+    '--border':'rgba(255,255,255,.07)', '--teal':'#12a695', '--teal-dark':'#0c6e63',
+    '--teal-glow':'rgba(18,166,149,.18)', '--text':'#eef4f7', '--text-dim':'#8ba0af',
+    '--gold':'#d9a441', '--blue':'#4c8ef7'
+  }},
+  navy: { name:'أزرق ملكي', vars:{
+    '--bg-app':'#070b18', '--bg-glow':'#111d3d', '--bg-panel':'#0e1730', '--bg-card-head':'#152040',
+    '--surface-0':'#0b1226', '--surface-1':'#101a34', '--surface-2':'#0a1329',
+    '--border':'rgba(255,255,255,.08)', '--teal':'#3b6fe0', '--teal-dark':'#24449c',
+    '--teal-glow':'rgba(59,111,224,.2)', '--text':'#eef2f9', '--text-dim':'#8b96b8',
+    '--gold':'#e0b23b', '--blue':'#63a0ff'
+  }},
+  charcoal: { name:'رمادي وذهبي', vars:{
+    '--bg-app':'#121212', '--bg-glow':'#1c1a12', '--bg-panel':'#1b1b1b', '--bg-card-head':'#242424',
+    '--surface-0':'#181818', '--surface-1':'#202020', '--surface-2':'#161616',
+    '--border':'rgba(255,255,255,.08)', '--teal':'#c9a227', '--teal-dark':'#8f7318',
+    '--teal-glow':'rgba(201,162,39,.2)', '--text':'#f3f0e8', '--text-dim':'#a49d8c',
+    '--gold':'#c9a227', '--blue':'#7fa8d9'
+  }},
+  crimson: { name:'أحمر صناعي', vars:{
+    '--bg-app':'#160a0a', '--bg-glow':'#241010', '--bg-panel':'#221010', '--bg-card-head':'#2c1414',
+    '--surface-0':'#1c0d0d', '--surface-1':'#241212', '--surface-2':'#180a0a',
+    '--border':'rgba(255,255,255,.08)', '--teal':'#d64545', '--teal-dark':'#8f2c2c',
+    '--teal-glow':'rgba(214,69,69,.2)', '--text':'#f7eeee', '--text-dim':'#b98f8f',
+    '--gold':'#e0a83b', '--blue':'#7fb3d9'
+  }},
+  light: { name:'فاتح (نهاري)', vars:{
+    '--bg-app':'#eef2f5', '--bg-glow':'#dbe6ec', '--bg-panel':'#ffffff', '--bg-card-head':'#f4f7f9',
+    '--surface-0':'#ffffff', '--surface-1':'#f2f5f7', '--surface-2':'#e8edf0',
+    '--border':'rgba(15,30,40,.12)', '--teal':'#0c8f80', '--teal-dark':'#086a5f',
+    '--teal-glow':'rgba(12,143,128,.15)', '--text':'#0f1e28', '--text-dim':'#5b6b76',
+    '--gold':'#b5822a', '--blue':'#2d6fd1'
+  }},
+  violet: { name:'بنفسجي عصري', vars:{
+    '--bg-app':'#120a1e', '--bg-glow':'#211033', '--bg-panel':'#1a1130', '--bg-card-head':'#241640',
+    '--surface-0':'#150c24', '--surface-1':'#1c1230', '--surface-2':'#130b20',
+    '--border':'rgba(255,255,255,.08)', '--teal':'#8b5cf6', '--teal-dark':'#5b3aa0',
+    '--teal-glow':'rgba(139,92,246,.22)', '--text':'#f3eefc', '--text-dim':'#a494c4',
+    '--gold':'#e0b23b', '--blue':'#60a5fa'
+  }},
+};
+
+function applyTheme(key, persist){
+  const theme = THEMES[key] || THEMES.teal;
+  const root = document.documentElement.style;
+  Object.entries(theme.vars).forEach(([k,v])=> root.setProperty(k, v));
+  if(persist !== false) localStorage.setItem('rl_theme', key);
+  document.querySelectorAll('.theme-swatch').forEach(sw=>{
+    sw.classList.toggle('active', sw.dataset.theme === key);
+  });
+  if(fitScreenEnabled) applyFitScreen(); // تغيير الثيم ممكن يغيّر ارتفاع الخط شوية
+}
+
+function buildThemeGrid(){
+  const grid = document.getElementById('themeGrid');
+  if(!grid) return;
+  const current = localStorage.getItem('rl_theme') || 'teal';
+  grid.innerHTML = Object.entries(THEMES).map(([key, t])=> `
+    <div class="theme-swatch ${key === current ? 'active' : ''}" data-theme="${key}">
+      <div class="swatch-bar">
+        <span style="background:${t.vars['--bg-app']}"></span>
+        <span style="background:${t.vars['--teal']}"></span>
+        <span style="background:${t.vars['--gold']}"></span>
+        <span style="background:${t.vars['--blue']}"></span>
+      </div>
+      <div class="swatch-name">${t.name}</div>
+    </div>`).join('');
+  grid.querySelectorAll('.theme-swatch').forEach(sw=>{
+    sw.onclick = ()=>{ applyTheme(sw.dataset.theme); showToast('تم تطبيق الثيم: ' + THEMES[sw.dataset.theme].name); };
+    sw.onmouseenter = ()=>{ applyTheme(sw.dataset.theme, false); };
+    sw.onmouseleave = ()=>{ applyTheme(localStorage.getItem('rl_theme') || 'teal', false); };
+  });
+}
+document.querySelector('[data-open="themeOverlay"]').addEventListener('click', buildThemeGrid);
+applyTheme(localStorage.getItem('rl_theme') || 'teal', false); // تطبيق آخر ثيم محفوظ عند فتح الملف
+
+/* ---- PDF via print ---- */
+/* الطباعة: بنقفل أي لوحة تحكم مفتوحة الأول، ونوقف مؤقتًا وضع التناوب/ملء الشاشة
+   (لأنهم بيستخدموا transform وبيقصّوا المحتوى)، وبعد الطباعة كل حاجة بترجع زي ما كانت.
+   شكل الشاشة نفسه مابيتغيرش — التغيير مؤقت لحظة الطباعة بس. */
+function printReport(){
+  const openOnes = [...document.querySelectorAll('.overlay.open')];
+  openOnes.forEach(o=> o.classList.remove('open'));
+  const wasRotation = document.body.classList.contains('rotation-active');
+  const wasKiosk = document.body.classList.contains('kiosk-fit');
+  const fitWrap = document.getElementById('fitWrap');
+  const savedTransform = fitWrap ? fitWrap.style.transform : '';
+  document.body.classList.remove('rotation-active', 'kiosk-fit');
+  if(fitWrap) fitWrap.style.transform = 'none';
+  /* نظهر كل الصفوف المخفية بالتناوب عشان التقرير يطلع كامل */
+  const groups = [...document.querySelectorAll('.rotation-group')];
+  const savedDisplay = groups.map(g=> g.style.display);
+  groups.forEach(g=> g.style.display = '');
+
+  const restore = ()=>{
+    groups.forEach((g,i)=> g.style.display = savedDisplay[i]);
+    if(fitWrap) fitWrap.style.transform = savedTransform;
+    if(wasRotation) document.body.classList.add('rotation-active');
+    if(wasKiosk) document.body.classList.add('kiosk-fit');
+    window.removeEventListener('afterprint', restore);
+  };
+  window.addEventListener('afterprint', restore);
+  setTimeout(()=>{
+    try{ window.print(); }catch(e){ console.error('print failed:', e); }
+    setTimeout(restore, 1500);      // احتياطي لو المتصفح مابعتش afterprint
+  }, 120);
+}
+document.getElementById('pdfBtn').onclick = printReport;
+
+/* ---- sync date ---- */
+const syncDateInput = document.getElementById('syncDate');
+/* لو فيه تاريخ متحفوظ محليًا من آخر مرة (قبل ما أي كاش أو شيت يجيب بياناته) نستخدمه كبداية */
+try{
+  const savedSyncDate = localStorage.getItem('rl_sync_date');
+  if(savedSyncDate) state.meta.date = savedSyncDate;
+}catch(e){ /* تجاهل */ }
+syncDateInput.value = state.meta.date;
+function applyDate(dateStr){
+  state.meta.date = dateStr;
+  const d = new Date(dateStr + 'T00:00:00');
+  if(!isNaN(d)) state.meta.dayName = DAY_NAMES[d.getDay()];
+  syncDateInput.value = state.meta.date; // نخلي الحقل في لوحة التحكم متزامن دايمًا
+}
+syncDateInput.onchange = async ()=>{
+  applyDate(syncDateInput.value);
+  try{ localStorage.setItem('rl_sync_date', state.meta.date); }catch(e){ /* تجاهل لو الكاش ممتلئ */ }
+  if(sheetApiUrl){
+    showToast('جارِ حفظ التاريخ ومزامنته مع جوجل شيت...');
+    const ok = await postToSheet();
+    showToast(ok ? 'تم حفظ التاريخ ومزامنته مع جوجل شيت' : 'تم حفظ التاريخ محليًا فقط — تعذّرت مزامنة الشيت');
+  } else {
+    showToast('تم حفظ التاريخ محليًا (لسه مفيش شيت متصل)');
+  }
+};
+document.getElementById('editDateInput').addEventListener('input', function(){
+  const d = new Date(this.value + 'T00:00:00');
+  const preview = document.getElementById('editDayNamePreview');
+  if(preview) preview.textContent = isNaN(d) ? '' : DAY_NAMES[d.getDay()];
+});
+
+/* ================== LAYOUT / DENSITY / DRAG ================== */
+document.getElementById('densitySlider').oninput = (e)=>{
+  document.documentElement.style.setProperty('--pad-scale', (e.target.value/100).toFixed(2));
+  document.documentElement.style.setProperty('--gap', Math.round(e.target.value*0.16)+'px');
+  if(typeof applyFitScreen === 'function' && fitScreenEnabled) applyFitScreen();
+};
+document.getElementById('fontSizeSlider').oninput = (e)=>{
+  document.documentElement.style.setProperty('--font-scale', (e.target.value/100).toFixed(2));
+  if(typeof applyFitScreen === 'function' && fitScreenEnabled) applyFitScreen();
+};
+
+let dragEnabled = false;
+const toggleDragBtn = document.getElementById('toggleDragBtn');
+toggleDragBtn.onclick = ()=>{
+  dragEnabled = !dragEnabled;
+  document.body.classList.toggle('layout-editing', dragEnabled);
+  toggleDragBtn.textContent = dragEnabled ? 'إنهاء وضع سحب الترتيب' : 'تفعيل وضع سحب الترتيب';
+  document.querySelectorAll('.kpi-row .card, .lines-row .card').forEach(c=>{
+    c.setAttribute('draggable', dragEnabled ? 'true' : 'false');
+  });
+};
+
+function setupDrag(){
+  let dragged = null;
+  document.querySelectorAll('.kpi-row .card, .lines-row .card').forEach(card=>{
+    card.setAttribute('draggable', dragEnabled ? 'true' : 'false');
+    card.addEventListener('dragstart', ()=>{ dragged = card; card.classList.add('drag-ghost'); });
+    card.addEventListener('dragend', ()=>{ card.classList.remove('drag-ghost'); });
+    card.addEventListener('dragover', e=> e.preventDefault());
+    card.addEventListener('drop', e=>{
+      e.preventDefault();
+      if(!dragged || dragged === card) return;
+      const parent = card.parentElement;
+      const cards = [...parent.children];
+      const from = cards.indexOf(dragged), to = cards.indexOf(card);
+      if(from < to) card.after(dragged); else card.before(dragged);
+      saveCardOrder();
+      showToast('تم تغيير الترتيب وحفظه');
+    });
+  });
+}
+
+/* ================== GOOGLE SHEET SYNC (Apps Script Web App) ================== */
+function isAnyOverlayOpen(){
+  return !!document.querySelector('.overlay.open');
+}
+
+/* أي قيمة رقم فيها علامة عشرية (زي 0.5 أو 84.3) ولسه مفيهاش % — بتعتبر
+   نسبة مئوية حسب اتفاقية اللوحة دي، فبنضيفلها % تلقائيًا (من غير ما نلمس
+   رمز المقارنة ≥/≤ اللي ممكن يكون قبلها أو بعدها). بتتنادى وقت المزامنة
+   مع جوجل شيت ووقت الحفظ اليدوي من لوحة التعديل، عشان القيمة تفضل متسقة
+   في كل مكان تدخل منه. */
+function normalizeMetricValue(v){
+  if(v === undefined || v === null) return v;
+  const s = String(v);
+  if(s.trim() === '' || s.includes('%')) return v; // فاضي أو متحطط % بالفعل
+  if(/\d+\.\d+/.test(s)) return s.replace(/(\d+\.\d+)/, '$1%');
+  return v;
+}
+
+function applySheetData(json){
+  const allMetrics = [
+    ...state.kpiSections.flatMap(s=>s.metrics),
+    ...state.lines.flatMap(l=>l.metrics)
+  ];
+  (json.metrics || []).forEach(m=>{
+    const local = allMetrics.find(x=>x.id === m.id);
+    if(!local) return;
+    /* الاسم والوسام مشتركين بين نوعي المؤشرات */
+    if(m.name !== undefined && String(m.name).trim() !== '') local.name = String(m.name).trim();
+    /* عمود badge القديم في الشيت بقى بلا تأثير — الأوسمة بقت إعداد واحد للصفحة كلها */
+    const isLine = ('plan' in local);
+    if(isLine){
+      /* مؤشرات الخطوط: الأرقام بتتخزن صافية (% وعلامة المقارنة بيتحطوا وقت العرض).
+         عمود eff الجاي من الشيت بيتقرا بس للمؤشرات اللي كفاءتها يدوية. */
+      if(!local.noPlan && m.target !== undefined) local.plan = cleanForInput(m.target);
+      if(m.actual !== undefined) local.actual = cleanForInput(m.actual);
+      if(m.pctGood !== undefined && m.pctGood !== '') local.pctGood = parseFloat(m.pctGood);
+      if(m.pctWarn !== undefined && m.pctWarn !== '') local.pctWarn = parseFloat(m.pctWarn);
+      if(local.effMode === 'manual' && m.eff !== undefined) local.eff = cleanForInput(m.eff);
+      if(local.signable){
+        if(m.planSign !== undefined) local.planSign = String(m.planSign).trim();
+        if(m.actualSign !== undefined) local.actualSign = String(m.actualSign).trim();
+      }
+    }else{
+      if(m.target !== undefined) local.target = cleanForInput(m.target);
+      if(m.actual !== undefined) local.actual = cleanForInput(m.actual);
+      local.override = m.override || 'auto';
+      if(local.signable){
+        if(m.planSign !== undefined) local.targetSign = String(m.planSign).trim();
+        if(m.targetSign !== undefined) local.targetSign = String(m.targetSign).trim();
+        if(m.actualSign !== undefined) local.actualSign = String(m.actualSign).trim();
+      }
+      if(m.pctGood !== undefined && m.pctGood !== '') local.pctGood = parseFloat(m.pctGood);
+      if(m.pctWarn !== undefined && m.pctWarn !== '') local.pctWarn = parseFloat(m.pctWarn);
+    }
+    if(m.dir) local.dir = m.dir;
+  });
+  if(json.meta){
+    if(json.meta.date){
+      state.meta.date = json.meta.date;
+      if(typeof syncDateInput !== 'undefined') syncDateInput.value = state.meta.date;
+      try{ localStorage.setItem('rl_sync_date', state.meta.date); }catch(e){ /* تجاهل */ }
+    }
+    if(json.meta.shift) state.meta.shift = json.meta.shift;
+    /* لو السكريبت بيرجّع وقت آخر تعديل، بنستخدمه عشان كل الشاشات تشوف نفس الرقم */
+    if(json.meta.lastEditAt) markLastEdit(json.meta.lastEditAt);
+    if(typeof applyAutoShift === 'function') applyAutoShift();   // الوقت الحالي بيغلب لو التحديد التلقائي مفعّل
+    if(json.meta.dayName) state.meta.dayName = json.meta.dayName;
+    if(json.meta.tagline) state.tagline = json.meta.tagline;
+    if(json.meta.shiftConfig){
+      try{
+        const sc = typeof json.meta.shiftConfig === 'string' ? JSON.parse(json.meta.shiftConfig) : json.meta.shiftConfig;
+        if(sc && typeof sc === 'object'){ shiftCfg = Object.assign(shiftCfg, sc); saveShiftCfg(false); applyAutoShift(); }
+      }catch(e){ /* تجاهل لو الإعداد تالف */ }
+    }
+    if(json.meta.safeConfig){
+      try{
+        const sc = typeof json.meta.safeConfig === 'string' ? JSON.parse(json.meta.safeConfig) : json.meta.safeConfig;
+        if(sc && typeof sc === 'object' && sc.anchor){ safeCfg = Object.assign(safeCfg, sc); saveSafeCfg(false); }
+      }catch(e){ /* تجاهل لو الإعداد تالف */ }
+    }
+    if(json.meta.scoreConfig){
+      try{
+        const cfg = typeof json.meta.scoreConfig === 'string' ? JSON.parse(json.meta.scoreConfig) : json.meta.scoreConfig;
+        if(cfg && typeof cfg === 'object'){ scoreCfg = Object.assign(scoreCfg, cfg); saveScoreCfg(false); }
+      }catch(e){ /* تجاهل لو الإعداد تالف */ }
+    }
+  }
+  /* تبويب Users في الشيت هو المصدر الرئيسي للحسابات — بنتبناه بس لو فيه أدمن واحد
+     على الأقل، عشان مانقفلش على نفسنا لو التبويب فاضي أو ناقص. */
+  if(Array.isArray(json.users) && json.users.length && json.users.some(u=>u.admin)){
+    users = json.users;
+    try{ localStorage.setItem(USERS_KEY, JSON.stringify(users)); }catch(e){ /* تجاهل */ }
+  }
+  if(json.history) state.history = json.history;
+  if(typeof saveDaySnapshot === 'function') saveDaySnapshot();  // صورة لآخر قراءة (أساس أسهم المقارنة والرسم المصغّر)
+  renderAll();
+  try{ localStorage.setItem('rl_dashboard_cache', JSON.stringify(json)); }catch(e){ /* تجاهل لو الكاش ممتلئ */ }
+}
+
+async function fetchFromSheet(interactive){
+  if(!sheetApiUrl) return false;
+  const statusEl = document.getElementById('sheetStatus');
+  if(interactive && statusEl) statusEl.textContent = 'جارِ المزامنة...';
+  try{
+    const res = await fetch(sheetApiUrl, { method:'GET' });
+    const json = await res.json();
+    applySheetData(json);
+    lastSyncAt = Date.now();
+    if(statusEl) statusEl.textContent = 'آخر مزامنة: ' + new Date().toLocaleTimeString('ar-EG');
+    if(interactive) showToast('تمت المزامنة مع جوجل شيت');
+    return true;
+  }catch(err){
+    console.error('fetchFromSheet failed:', err);
+    if(statusEl) statusEl.textContent = 'تعذّر الاتصال بالشيت — تأكد من الرابط ومن نشر الـ Web App بصلاحية "Anyone".';
+    return false;
+  }
+}
+
+/* نداء موحّد لأي عملية على السيرفر — بيرجّع رد السكريبت نفسه (مش true/false بس) */
+async function callSheet(body){
+  if(!sheetApiUrl) return { ok:false, error:'no_url' };
+  try{
+    const res = await fetch(sheetApiUrl, {
+      method:'POST',
+      body: JSON.stringify(Object.assign({ key: WRITE_KEY, auth: authPayload() }, body || {}))
+    });
+    const txt = await res.text();
+    try{ return JSON.parse(txt); }catch(e){ return { ok:false, error:'bad_response' }; }
+  }catch(err){
+    console.error('callSheet failed:', err);
+    return { ok:false, error:'network' };
+  }
+}
+function describeSheetError(code){
+  const map = {
+    bad_key:'مفتاح الكتابة غلط — راجعه في "ربط جوجل شيت".',
+    no_token:'الجلسة على السيرفر انتهت — اعمل تسجيل خروج ودخول تاني.',
+    no_user:'الحساب ده مش موجود في تبويب Users على الشيت.',
+    clear_admin_only:'العملية دي للأدمن فقط.',
+    badge_admin_only:'وسام الأداء يتحكم فيه الأدمن فقط.',
+    users_admin_only:'إدارة المستخدمين للأدمن فقط.',
+    need_confirm:'التأكيد ناقص.',
+    network:'مفيش اتصال بالشيت.',
+    bad_response:'رد غير مفهوم من السكريبت — تأكد إنك نشرت آخر نسخة (New version).',
+    no_url:'مفيش شيت متصل.'
+  };
+  return map[code] || (code || 'سبب غير معروف');
+}
+
+/* ---------- تسجيل دخول على السيرفر: بيرجّع توكن حقيقي بدل ما نثق بالمتصفح ---------- */
+async function serverLogin(pass){
+  if(!sheetApiUrl || !session) return false;
+  const pw = (pass !== undefined) ? pass : lastLoginPassword;
+  if(!pw) return false;
+  try{
+    const res = await fetch(sheetApiUrl, {
+      method:'POST',
+      body: JSON.stringify({ action:'login', user: session.u, pass: pw })
+    });
+    const json = await res.json();
+    if(json && json.ok && json.token){
+      session.token = json.token;                 // التوكن ده هو اللي السيرفر بيثق فيه
+      session.serverAuth = true;
+      saveSession();
+      return true;
+    }
+    session.serverAuth = false;
+    return false;
+  }catch(err){
+    console.error('serverLogin failed:', err);
+    session.serverAuth = false;
+    return false;
+  }
+}
+
+async function postToSheet(extra){
+  if(!sheetApiUrl) return false;
+  const allMetrics = [
+    ...state.kpiSections.flatMap(s=>s.metrics),
+    ...state.lines.flatMap(l=>l.metrics)
+  ];
+  const find = (id)=> allMetrics.find(x=>x.id===id) || {};
+  const payload = {
+    metrics: allMetrics.map(m=> {
+      const isLine = ('plan' in m);
+      const row = {
+        id: m.id,
+        name: m.name,                                  // الاسم بيتحفظ في الشيت (الـ id ثابت)
+        target: isLine ? (m.noPlan ? '' : m.plan) : m.target,
+        actual: m.actual,
+        override: isLine ? 'auto' : m.override,
+        pctGood: metricPct(m).good,
+        pctWarn: metricPct(m).warn
+      };
+      if(isLine){
+        row.eff = (m.effMode === 'manual') ? cleanForInput(m.eff) : cleanForInput(effDisplay(m));
+        row.pctGood = metricPct(m).good;
+        row.pctWarn = metricPct(m).warn;
+        if(m.signable){ row.planSign = m.planSign || ''; row.actualSign = m.actualSign || ''; }
+      }else if(m.signable){
+        row.planSign = m.targetSign || '';      // علامة المستهدف بتتخزن في نفس العمود
+        row.actualSign = m.actualSign || '';
+      }
+      return row;
+    }),
+    meta: { date: state.meta.date, shift: state.meta.shift, dayName: state.meta.dayName },
+    tagline: state.tagline,
+    auth: authPayload(),        // اسم المستخدم + التوكن — السكريبت هو اللي يتحقق ويرفض غير المصرّح
+    ...(extra || {}),
+    historyPoint: {
+      containers: find('w1').actual,
+      efficiency: find('p2').actual,
+      waste: find('p3').actual,
+      rework: find('p5').actual,
+    }
+  };
+  try{
+    lastSyncAt = Date.now();
+    await fetch(sheetApiUrl, { method:'POST', body: JSON.stringify(payload) });
+    /* عشان لما يفتح الصفحة تاني بسرعة (قبل ما يكمل جلب أحدث نسخة من الشيت)
+       الكاش المحلي يبقى فيه التاريخ/الشيفت اللي اتحفظوا دلوقتي، مش نسخة قديمة
+       من آخر مرة الشيت اتقرا فيها — عشان كدا كان التاريخ بيرجع لقيمته القديمة. */
+    try{
+      const cachedRaw = localStorage.getItem('rl_dashboard_cache');
+      const cached = cachedRaw ? JSON.parse(cachedRaw) : {};
+      cached.meta = { date: state.meta.date, shift: state.meta.shift, dayName: state.meta.dayName };
+      cached.tagline = state.tagline;
+      localStorage.setItem('rl_dashboard_cache', JSON.stringify(cached));
+    }catch(e){ /* تجاهل لو الكاش ممتلئ أو فاسد */ }
+    return true;
+  }catch(err){
+    console.error('postToSheet failed:', err);
+    return false;
+  }
+}
+
+document.getElementById('sheetSyncBtn').onclick = async ()=>{
+  const url = document.getElementById('sheetUrl').value.trim();
+  const key = document.getElementById('sheetKey').value.trim();
+  const statusEl = document.getElementById('sheetStatus');
+  if(!url){ statusEl.textContent = 'الرجاء لصق رابط الـ Web App أولاً.'; return; }
+  if(!/^https:\/\/script\.google\.com\//.test(url)){
+    statusEl.textContent = 'الرابط ده مش شكل رابط Web App من Apps Script — لازم يبدأ بـ https://script.google.com/'; return;
+  }
+  sheetApiUrl = url;
+  try{ localStorage.setItem('rl_sheet_api_url', url); }catch(e){ /* تجاهل */ }
+  if(key){
+    WRITE_KEY = key;
+    try{ localStorage.setItem('rl_write_key', key); }catch(e){ /* تجاهل */ }
+  }
+  await fetchFromSheet(true);
+  await serverLogin();                       // نجدّد التوكن على السيرفر بعد الربط
+};
+
+/* ---------- مسح كل البيانات (أدمن فقط + تأكيد + تحقق على السيرفر) ---------- */
+document.getElementById('clearDataBtn').onclick = ()=>{
+  if(!isAdmin()){ showToast('مسح البيانات للأدمن فقط'); return; }
+  if(!sheetApiUrl){ showToast('اربط جوجل شيت الأول — المسح بيتم من على السيرفر'); return; }
+  document.getElementById('clearConfirmInput').value = '';
+  document.getElementById('clearHistoryToo').checked = false;
+  document.getElementById('clearMsg').textContent = '';
+  closeOverlay('sheetOverlay');
+  openOverlay('clearOverlay');
+};
+document.getElementById('clearConfirmBtn').onclick = async ()=>{
+  const msg = document.getElementById('clearMsg');
+  msg.className = 'login-msg err';
+  if(!isAdmin()){ msg.textContent = 'مسح البيانات للأدمن فقط.'; return; }
+  if(document.getElementById('clearConfirmInput').value.trim() !== 'مسح'){
+    msg.textContent = 'اكتب كلمة "مسح" بالظبط عشان نتأكد إنك متأكد.'; return;
+  }
+  const btn = document.getElementById('clearConfirmBtn');
+  btn.disabled = true; msg.className = 'login-msg'; msg.textContent = 'جارِ المسح...';
+  const res = await callSheet({
+    action: 'clear',
+    confirm: 'CLEAR-ALL-DATA',
+    includeHistory: document.getElementById('clearHistoryToo').checked
+  });
+  btn.disabled = false;
+  if(!res || res.ok !== true){
+    msg.className = 'login-msg err';
+    msg.textContent = 'المسح اترفض من السيرفر: ' + describeSheetError(res && res.error);
+    return;
+  }
+  /* تفضية محلية كمان: القيم + الكاش + صور المقارنة */
+  allMetricsFlat().forEach(m=>{
+    m.actual = '';
+    if('plan' in m){ if(!m.noPlan) m.plan = ''; if(m.effMode === 'manual') m.eff = ''; }
+    else m.target = '';
+  });
+  if(document.getElementById('clearHistoryToo').checked) state.history = [];
+  try{
+    localStorage.removeItem('rl_dashboard_cache');
+    localStorage.removeItem(SNAP_KEY);
+  }catch(e){ /* تجاهل */ }
+  saveAudit(loadAudit().concat([{
+    t:new Date().toISOString(), u:(session ? (session.name || session.u) : 'أدمن'),
+    metric:'كل البيانات', field:'مسح شامل', from:'—',
+    to:'اتمسحت من جوجل شيت (' + (res.cleared || []).join(' + ') + ')',
+    date:state.meta.date, shift:state.meta.shift
+  }]));
+  renderAll();
+  closeOverlay('clearOverlay');
+  showToast('تم مسح البيانات من جوجل شيت ومن الجهاز');
+};
+
+/* مزامنة أولية + فحص دوري كل 20 ثانية (يتوقف مؤقتًا لو المستخدم فاتح أي لوحة تحكم عشان ميبوظش تعديل شغال) */
+if(sheetApiUrl){
+  document.getElementById('sheetUrl').value = sheetApiUrl;
+  if(WRITE_KEY) document.getElementById('sheetKey').value = WRITE_KEY;
+  try{
+    const cached = localStorage.getItem('rl_dashboard_cache');
+    if(cached) applySheetData(JSON.parse(cached));
+  }catch(e){ /* كاش تالف — تجاهله وانتظر البيانات من الشيت */ }
+  fetchFromSheet(false);
+}
+setInterval(()=>{
+  if(sheetApiUrl && !isAnyOverlayOpen()) fetchFromSheet(false);
+}, 20000);
+
+/* ================== MANUAL EDIT TABLE ================== */
+function overrideOptions(sel){
+  return `<option value="auto" ${sel==='auto'?'selected':''}>تلقائي (Auto)</option>
+    <option value="good" ${sel==='good'?'selected':''}>✓ مقبول</option>
+    <option value="warn" ${sel==='warn'?'selected':''}>! تحت المتابعة</option>
+    <option value="bad" ${sel==='bad'?'selected':''}>✕ مرفوض</option>`;
+}
+/* اسم المؤشر: أول عمود في الجدول، وأي مستخدم عنده صلاحية تعديل على الجدول ده
+   يقدر يغيّره. الـ id مابيتغيرش أبدًا — الاسم بس هو اللي بيتحفظ في جوجل شيت. */
+function nameField(m){
+  return `<div class="field-col name-col">
+    <label>اسم المؤشر (بيظهر في أول عمود)</label>
+    <input class="name-input" data-id="${m.id}" data-field="name" maxlength="80"
+           value="${escapeAttr(m.name)}" placeholder="اكتب اسم المؤشر">
+  </div>`;
+}
+function escapeAttr(v){
+  return String(v === undefined || v === null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+/* خانتين النسبة — نفس الشكل في كل الجداول، وبيعدّلهم الأدمن بس */
+function pctFields(m){
+  const lim = metricPct(m);
+  const lock = isAdmin() ? '' : ' disabled title="النِسَب يعدّلها الأدمن فقط"';
+  return `<label class="ov-label">حدود الحالة كنسبة من المستهدف (انحراف مسموح)</label>
+    <div class="edit-metric-row">
+      <div class="field-col"><label>ضمن المستهدف حتى</label>
+        <div class="input-with-unit"><input data-id="${m.id}" data-field="pctGood" value="${lim.good}"${lock}><span class="field-unit">%</span></div>
+      </div>
+      <div class="field-col"><label>يحتاج متابعة حتى</label>
+        <div class="input-with-unit"><input data-id="${m.id}" data-field="pctWarn" value="${lim.warn}"${lock}><span class="field-unit">%</span></div>
+      </div>
+    </div>`;
+}
+function metricCard(m, targetField, targetLabel){
+  const actualLabel = 'الفعلي';
+  const targetLbl   = targetLabel;
+  const hintTxt = '';
+  return `<div class="edit-metric-card">
+    <div class="edit-metric-title">${escapeAttr(m.name)}</div>
+    <div class="edit-metric-row">${nameField(m)}</div>
+    <div class="edit-metric-row">
+      ${numField(m, targetField, targetLbl, 'targetSign')}
+      ${numField(m, 'actual', actualLabel, 'actualSign')}
+    </div>
+    ${hintTxt}
+    ${pctFields(m)}
+    <label class="ov-label">تجاوز الحالة (اختياري)</label>
+    <select class="ov-select" data-id="${m.id}" data-field="override" ${isAdmin() ? '' : 'disabled'}>${overrideOptions(m.override)}</select>
+  </div>`;
+}
+
+/* كارت تعديل مؤشر من مؤشرات خطوط التعبئة والتغليف:
+   - الأرقام بتتكتب صافية: علامة % ثابتة جانب الخانة (مش بتتكتب ولا بتتشال).
+   - Product / Film Waste: فيه قايمة تختار منها علامة المقارنة (> ، ≥ ، < ، ≤) للمخطط والفعلي.
+   - الكفاءة: يدوية في Waste و Downtime، وتلقائية في الإنتاج والكفاءة (%).
+   - وانت اللي بتحدد الحدود اللي الحالة بتتحسب على أساسها. */
+function signSelect(m, field){
+  const cur = m[field] || '';
+  const label = { '':'بدون علامة', '≥':'≥ أكبر من أو يساوي', '>':'> أكبر من', '≤':'≤ أصغر من أو يساوي', '<':'< أصغر من' };
+  return `<select class="sign-select" data-id="${m.id}" data-field="${field}">
+    ${SIGN_OPTIONS.map(o=> `<option value="${o}" ${o === cur ? 'selected' : ''}>${label[o]}</option>`).join('')}
+  </select>`;
+}
+function fieldUnit(m, field){
+  return m.unit;
+}
+/* خانة رقم: المستخدم بيكتب الرقم بس، وعلامة % (أو كجم) ثابتة جوه الخانة
+   مابتتكتبش ولا بتتشال. وعلامة المقارنة (إن وُجدت) بتتختار من قايمة تحتها. */
+function numField(m, field, labelTxt, signField){
+  const u = fieldUnit(m, field);
+  const suffix = u === '%' ? `<span class="field-unit">%</span>` : (u === 'kg' ? `<span class="field-unit">كجم</span>` : '');
+  const sf = signField || (field + 'Sign');
+  return `<div class="field-col">
+    <label>${labelTxt}</label>
+    <div class="input-with-unit">
+      <input data-id="${m.id}" data-field="${field}" value="${cleanForInput(m[field])}">${suffix}
+    </div>
+    ${m.signable ? signSelect(m, sf) : ''}
+  </div>`;
+}
+function lineMetricCard(m){
+  const unitLabel = m.unit === '%' ? '' : (m.unit === 'min' ? ' (دقيقة)' : ' (كجم)');
+  const effCell = (m.effMode === 'manual')
+    ? `<div class="field-col"><label>الكفاءة (يدوي)</label>
+         <div class="input-with-unit">
+           <input data-id="${m.id}" data-field="eff" value="${cleanForInput(m.eff)}"><span class="field-unit">%</span>
+         </div>
+       </div>`
+    : `<div class="field-col"><label>الكفاءة (تلقائي)</label>
+         <div class="input-with-unit">
+           <input value="${cleanForInput(effDisplay(m))}" disabled title="بتتحسب أوتوماتيك = (الفعلي ÷ المخطط) × 100"><span class="field-unit">%</span>
+         </div>
+       </div>`;
+  const planLbl   = 'المخطط' + unitLabel;
+  const actualLbl = 'الفعلي' + unitLabel;
+  const hintTxt = '';
+  return `<div class="edit-metric-card">
+    <div class="edit-metric-title">${escapeAttr(m.name)}</div>
+    <div class="edit-metric-row">${nameField(m)}</div>
+    <div class="edit-metric-row">
+      ${numField(m, 'plan', planLbl)}
+      ${numField(m, 'actual', actualLbl)}
+      ${effCell}
+    </div>
+    ${hintTxt}
+    ${pctFields(m)}
+  </div>`;
+}
+function buildEditTable(){
+  const wrap = document.getElementById('editTableWrap');
+  let html = '';
+  let blocked = 0;
+  state.kpiSections.forEach(sec=>{
+    if(!canEditCard(sec.id)){ blocked++; return; }     // مالكش صلاحية على الجدول ده = مايظهرش خالص
+    html += `<div class="edit-section-label"><span class="dot"></span>قسم ${sec.title}</div><div class="edit-metric-grid">`;
+    sec.metrics.forEach(m=>{ html += metricCard(m, 'target', 'المستهدف'); });
+    html += `</div>`;
+  });
+  state.lines.forEach(line=>{
+    if(!canEditCard(line.id)){ blocked++; return; }
+    html += `<div class="edit-section-label"><span class="dot"></span>${line.title}</div><div class="edit-metric-grid lines">`;
+    line.metrics.forEach(m=>{ html += lineMetricCard(m); });
+    html += `</div>`;
+  });
+  if(!html) html = `<div class="locked-note">مفيش جداول متاحة لك للتعديل — كلّم الأدمن يظبط صلاحياتك.</div>`;
+  else if(blocked) html += `<div class="locked-note">فيه ${blocked} جدول مخفي لأنك مالكش صلاحية تعديل عليه.</div>`;
+  wrap.innerHTML = html;
+  const notesEl = document.getElementById('notesTextarea');
+  notesEl.disabled = !isAdmin();
+  notesEl.title = isAdmin() ? '' : 'رسالة الفوتر يعدّلها الأدمن فقط';
+
+  document.getElementById('editSubtitle').textContent = `تعديل البيانات لـ ${state.meta.date}`;
+  document.getElementById('shiftSelect').value = state.meta.shift;
+  document.getElementById('editDateInput').value = state.meta.date;
+  document.getElementById('editDayNamePreview').textContent = state.meta.dayName;
+  document.getElementById('notesTextarea').value = state.tagline;
+
+  /* أيام بدون حوادث: الأدمن بس هو اللي يكتبها */
+  const sdIn = document.getElementById('safeDaysInput');
+  const sdLock = document.getElementById('safeDaysLock');
+  const sdHint = document.getElementById('safeDaysHint');
+  const cur = daysWithoutIncidents();
+  sdIn.value = (cur === null) ? '' : cur;
+  sdIn.disabled = !isAdmin();
+  sdIn.title = isAdmin() ? 'الرقم بيزيد يوم بيوم لوحده بعد ما تحفظه' : 'الأدمن بس هو اللي يعدّل العدّاد ده';
+  sdLock.textContent = isAdmin() ? '' : '(أدمن فقط)';
+  if(incidentToday()){
+    sdIn.value = 0;
+    sdHint.innerHTML = '<b style="color:var(--bad)">فيه حادثة مسجّلة في "عدد الحوادث الوشيكة" النهاردة — العدّاد بيتصفّر تلقائيًا مع الحفظ.</b>';
+  }else{
+    sdHint.textContent = 'العدّاد بيزيد يوم بيوم لوحده من الرقم اللي تكتبه، وبيرجع صفر تلقائيًا لو سجّلت حادثة في "عدد الحوادث الوشيكة".';
+  }
+}
+document.querySelector('[data-open="editOverlay"]').addEventListener('click', buildEditTable);
+
+document.getElementById('saveEditsBtn').onclick = async ()=>{
+  const allMetrics = [
+    ...state.kpiSections.flatMap(s=>s.metrics),
+    ...state.lines.flatMap(l=>l.metrics)
+  ];
+  if(!validateEditInputs()) return;                   // تحقق من المدخلات قبل أي حفظ
+  const before = snapshotValues();                    // صورة قبل التعديل — للمقارنة وسجل التغييرات
+  const safeBefore = daysWithoutIncidents();          // عدّاد الأيام قبل التعديل (لسجل التغييرات)
+  const safeCfgBefore = JSON.stringify(safeCfg);      // عشان نسجّل التغيير الحقيقي بس
+  document.querySelectorAll('#editTableWrap [data-id]').forEach(input=>{
+    const m = allMetrics.find(x=>x.id === input.dataset.id);
+    if(!m) return;
+    const f = input.dataset.field;
+    if(f === 'name'){
+      const nm = String(input.value || '').trim().slice(0, 80);
+      if(nm) m.name = nm;                                // اسم فاضي = نسيب الاسم القديم (الـ id مابيتغيرش)
+    }else if(f === 'planSign' || f === 'actualSign' || f === 'targetSign'){
+      m[f] = input.value;                                // علامة المقارنة زي ما اتختارت بالظبط
+    }else if(f === 'pctGood' || f === 'pctWarn'){
+      const num = parseFloat(String(input.value).replace(/[%\s]/g, ''));
+      if(!isNaN(num)) m[f] = num;                       // حد فاضي أو غلط = نسيب الحد القديم
+    }else{
+      /* كل الأرقام بتتخزن صافية — علامة % وعلامات المقارنة بيتحطوا وقت العرض بس */
+      m[f] = cleanForInput(input.value);
+    }
+  });
+  savePctLimits();
+
+  /* أيام بدون حوادث: لو فيه حادثة النهاردة يتصفّر ويبدأ العد من تاريخها،
+     وغير كدا ناخد الرقم اللي كتبه الأدمن ونثبّته على تاريخ اليوم. */
+  const pickedDay = document.getElementById('editDateInput').value || state.meta.date;
+  if(incidentToday()){
+    safeCfg = { base:0, anchor:pickedDay };
+    saveSafeCfg(false);
+  }else if(isAdmin()){
+    const sdRaw = document.getElementById('safeDaysInput').value;
+    const sd = parseInt(String(sdRaw).trim(), 10);
+    if(String(sdRaw).trim() !== '' && !isNaN(sd) && sd >= 0){
+      const shown = daysWithoutIncidents();
+      if(sd !== shown || safeCfg.base === null){        // اتغيّر فعلاً؟ نثبّته من جديد
+        safeCfg = { base:sd, anchor:pickedDay };
+        saveSafeCfg(false);
+      }
+    }
+  }
+  state.meta.shift = document.getElementById('shiftSelect').value;
+  const pickedDate = document.getElementById('editDateInput').value;
+  if(pickedDate) applyDate(pickedDate); // بيحدّث state.meta.date و dayName مع بعض
+  const notesEl = document.getElementById('notesTextarea');
+  if(!notesEl.disabled) state.tagline = notesEl.value;
+  const auditEntries = diffAndLog(before);            // مين غيّر إيه
+  const safeAfter = daysWithoutIncidents();
+  /* بنسجّل بس لو الإعداد نفسه اتغيّر — مش لما الرقم يزيد لوحده بمرور الأيام */
+  if(JSON.stringify(safeCfg) !== safeCfgBefore){
+    auditEntries.push({ t:new Date().toISOString(), u:(session ? (session.name || session.u) : 'غير معروف'),
+      metric:'أيام بدون حوادث', field: incidentToday() ? 'تصفير بسبب حادثة' : 'تعديل العدّاد',
+      from:(safeBefore === null ? '—' : String(safeBefore)), to:(safeAfter === null ? '—' : String(safeAfter)),
+      date:state.meta.date, shift:state.meta.shift });
+    saveAudit(loadAudit().concat(auditEntries.slice(-1)));
+  }
+  markLastEdit();                                     // ده وقت "آخر تحديث" اللي بيظهر فوق
+  saveDaySnapshot();                                  // صورة اليوم/الوردية للمقارنة والرسومات
+  renderAll();
+  closeOverlay('editOverlay');
+  if(sheetApiUrl){
+    showToast('تم الحفظ — جارِ المزامنة مع جوجل شيت...');
+    const ok = await postToSheet({ audit: auditEntries, safeConfig: safeCfg });
+    showToast(ok ? 'تم الحفظ ومزامنته مع جوجل شيت بنجاح' : 'تم الحفظ محليًا فقط — تعذّرت مزامنة الشيت');
+  } else {
+    showToast('تم حفظ التعديلات بنجاح (محليًا فقط — لسه مفيش شيت متصل)');
+  }
+};
+
+
+/* ================================================================
+   ==============  المستخدمون والصلاحيات والسجل والمقارنات  ==============
+   فلسفة التصميم:
+   • العرض مفتوح للجميع — الشاشة مابتطلبش تسجيل دخول أبدًا ومابتنتهيش جلستها.
+   • الدخول مطلوب فقط لفتح لوحة التحكم (تعديل بيانات / إعدادات / مستخدمين).
+   • كل مستخدم بياخد صلاحية "تعديل" على جداول محددة، والأدمن عنده كل حاجة.
+   • كلمة المرور مابتتخزنش نص صريح — بتتخزن بصمة (SHA-256 + salt) لكل مستخدم.
+   ملحوظة أمان مهمة: التحقق هنا في المتصفح كافي لمنع التعديل بالغلط أو من غير صلاحية،
+   لكن الحماية الحقيقية بتيجي من ملف Apps Script المرفق (بيتحقق من التوكن ويرفض
+   أي كتابة على جدول مش مصرّح بيه) — راجع apps-script.gs.
+   ================================================================ */
+
+
+/* ---------- تنسيق الوقت بأرقام لاتينية (زي باقي أرقام اللوحة) ---------- */
+function fmtTime(d){
+  try{ return d.toLocaleTimeString('ar-EG-u-nu-latn', { hour:'2-digit', minute:'2-digit', second:'2-digit' }); }
+  catch(e){ return d.toLocaleTimeString('en-GB'); }
+}
+function fmtDateTime(d){
+  try{ return d.toLocaleString('ar-EG-u-nu-latn', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }); }
+  catch(e){ return d.toLocaleString('en-GB'); }
+}
+
+/* ---------- تشفير كلمة المرور ---------- */
+function fnvHash(str){
+  let h1 = 0x811c9dc5, h2 = 0x01000193;
+  for(let i=0;i<str.length;i++){
+    h1 ^= str.charCodeAt(i); h1 = Math.imul(h1, 16777619) >>> 0;
+    h2 = Math.imul(h2 ^ str.charCodeAt(i), 2246822519) >>> 0;
+  }
+  return (h1 >>> 0).toString(16).padStart(8,'0') + (h2 >>> 0).toString(16).padStart(8,'0');
+}
+async function hashPw(pw, salt){
+  const txt = salt + '::' + pw;
+  if(window.crypto && crypto.subtle && crypto.subtle.digest){
+    try{
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+      return 'sha256:' + Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }catch(e){ /* الملف مفتوح بـ file:// = crypto.subtle مش متاح، نستخدم البديل */ }
+  }
+  return 'fnv:' + fnvHash(txt) + fnvHash(txt.split('').reverse().join(''));
+}
+function randSalt(){
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+/* ---------- قائمة الجداول اللي بتتحدد عليها الصلاحيات ---------- */
+function cardList(){
+  return [
+    ...state.kpiSections.map(x=>({ id:x.id, title:x.title })),
+    ...state.lines.map(x=>({ id:x.id, title:x.title })),
+  ];
+}
+
+/* ---------- تخزين المستخدمين ---------- */
+function loadUsers(){
+  try{ users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); }catch(e){ users = []; }
+  if(!Array.isArray(users)) users = [];
+}
+function saveUsers(pushToSheet){
+  try{ localStorage.setItem(USERS_KEY, JSON.stringify(users)); }catch(e){ /* تجاهل */ }
+  /* المستخدمين بيتزامنوا مع تبويب Users في الشيت عشان نفس الحسابات تشتغل على كل
+     الأجهزة والشاشات، مش على متصفح واحد بس. (البصمة بتتخزن، مش كلمة المرور نفسها) */
+  if(pushToSheet && sheetApiUrl && isAdmin()) postToSheet({ users: users });
+}
+/* الأدمن الافتراضي: كلمة المرور نفسها مش مكتوبة في الملف — متخزنة بصمة جاهزة بس
+   (النسخة الأولى للمتصفحات اللي فيها crypto.subtle، والتانية بديل لو الملف مفتوح file://).
+   بيانات الدخول الافتراضية موجودة في دليل التشغيل، ولازم تتغيّر أول ما تدخل. */
+var DEFAULT_ADMIN = {
+  salt: 'rl-init-2026',
+  hash: 'sha256:d1e2664a372ef438158606e728aa7c922b4fc8fbc929e80670c8996f88041442',
+  hashAlt: 'fnv:e8f2da38793bca2ee9ccc33a16640f64'
+};
+async function ensureDefaultAdmin(){
+  loadUsers();
+  if(users.some(u=>u.admin)) return;
+  users.push({
+    u:'admin', name:'مدير النظام', salt: DEFAULT_ADMIN.salt,
+    hash: DEFAULT_ADMIN.hash, hashAlt: DEFAULT_ADMIN.hashAlt,
+    admin:true, active:true, perms:{}, mustChange:true, created:new Date().toISOString(), lastLogin:'', failed:0, lockUntil:0
+  });
+  saveUsers();
+}
+function findUser(name){
+  const k = String(name || '').trim().toLowerCase();
+  return users.find(u=> String(u.u).toLowerCase() === k);
+}
+
+/* ---------- الجلسة ---------- */
+function loadSession(){
+  try{ session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); }catch(e){ session = null; }
+  if(session && session.exp && Date.now() > session.exp) session = null;
+}
+function saveSession(){
+  try{
+    if(session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    else localStorage.removeItem(SESSION_KEY);
+  }catch(e){ /* تجاهل */ }
+}
+function startSession(user){
+  session = {
+    u: user.u, name: user.name || user.u, admin: !!user.admin,
+    perms: user.perms || {}, exp: Date.now() + SESSION_HOURS*3600*1000,
+    token: fnvHash(user.u + '|' + user.hash + '|' + Date.now())
+  };
+  saveSession(); resetIdleTimer(); applyAuthUI();
+}
+function logout(silent){
+  session = null; saveSession();
+  lastLoginPassword = '';                    // ننسى الباسورد والتوكن مع الخروج
+  ['mainOverlay','editOverlay','usersOverlay','auditOverlay','sheetOverlay','layoutOverlay','themeOverlay','clearOverlay']
+    .forEach(id=>{ const el = document.getElementById(id); if(el) el.classList.remove('open'); });
+  applyAuthUI();
+  if(!silent) showToast('تم تسجيل الخروج — العرض على الشاشة شغّال زي ما هو');
+}
+function isLoggedIn(){ loadSession(); return !!session; }
+function isAdmin(){ return !!(session && session.admin); }
+function canEditCard(id){
+  if(!session) return false;
+  if(session.admin) return true;
+  return !!(session.perms && session.perms[id]);
+}
+/* بنبعت الاسم والتوكن بس. الدور (أدمن/صلاحيات) السيرفر بيقراه من تبويب Users
+   ومابياخدوش مننا خالص — عشان محدش يقدر يدّعي إنه أدمن من المتصفح. */
+function authPayload(){
+  return session
+    ? { user: session.u, token: session.token || '', key: WRITE_KEY }
+    : { user:'', token:'', key: WRITE_KEY };
+}
+function resetIdleTimer(){
+  if(idleTimer) clearTimeout(idleTimer);
+  if(!session) return;
+  idleTimer = setTimeout(()=>{
+    if(session){ logout(true); showToast('تم الخروج تلقائيًا بعد ' + IDLE_MINUTES + ' دقيقة سكون'); }
+  }, IDLE_MINUTES*60*1000);
+}
+
+/* ---------- واجهة: إظهار/إخفاء المربعات حسب الدور ---------- */
+function applyAuthUI(){
+  const usersTile = document.getElementById('usersTile');
+  const logoutTile = document.getElementById('logoutTile');
+  const auditTile = document.getElementById('auditTile');
+  const nameEl = document.getElementById('logoutUserName');
+  const loginTile = document.getElementById('loginTile');
+  if(loginTile) loginTile.style.display = session ? 'none' : '';
+  const lockNote = document.getElementById('lockNote');
+  if(lockNote){
+    lockNote.textContent = session
+      ? ('✓ داخل باسم ' + (session.name || session.u) + (session.admin ? ' (أدمن)' : ''))
+      : '🔒 محتاجة تسجيل دخول';
+    lockNote.style.color = session ? 'var(--good)' : 'var(--gold)';
+  }
+  if(usersTile) usersTile.style.display = isAdmin() ? '' : 'none';
+  if(auditTile) auditTile.style.display = session ? '' : 'none';
+  if(logoutTile) logoutTile.style.display = session ? '' : 'none';
+  if(nameEl && session) nameEl.textContent = session.name || session.u;
+  const scoreTile = document.getElementById('scoreTile');
+  if(scoreTile) scoreTile.style.display = isAdmin() ? '' : 'none';   // المعادلة للأدمن فقط
+  const clearBtn = document.getElementById('clearDataBtn');
+  if(clearBtn) clearBtn.style.display = isAdmin() ? '' : 'none';
+  const shiftTile = document.getElementById('shiftTile');
+  if(shiftTile) shiftTile.style.display = isAdmin() ? '' : 'none';   // مواعيد الورديات للأدمن فقط
+  const sheetTile = document.querySelector('[data-open="sheetOverlay"]');
+  if(sheetTile) sheetTile.style.display = isAdmin() ? '' : 'none';   // ربط الشيت للأدمن فقط
+}
+
+/* ---------- شاشة الدخول ---------- */
+async function doLogin(){
+  const msg = document.getElementById('loginMsg');
+  const uName = document.getElementById('loginUser').value.trim();
+  const pw = document.getElementById('loginPass').value;
+  msg.className = 'login-msg err';
+  loadUsers();
+  const user = findUser(uName);
+  if(!user){ msg.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة.'; return; }
+  if(user.active === false){ msg.textContent = 'الحساب ده موقوف — كلّم الأدمن.'; return; }
+  if(user.lockUntil && Date.now() < user.lockUntil){
+    const mins = Math.ceil((user.lockUntil - Date.now())/60000);
+    msg.textContent = 'الحساب مقفول مؤقتًا، جرّب تاني بعد ' + mins + ' دقيقة.'; return;
+  }
+  const h = await hashPw(pw, user.salt);
+  if(h !== user.hash && !(user.hashAlt && h === user.hashAlt)){
+    user.failed = (user.failed || 0) + 1;
+    if(user.failed >= MAX_FAILED){ user.lockUntil = Date.now() + LOCK_MINUTES*60*1000; user.failed = 0; }
+    saveUsers();
+    msg.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة.' +
+      (user.lockUntil > Date.now() ? ' (تم قفل الحساب ' + LOCK_MINUTES + ' دقايق)' : '');
+    return;
+  }
+  user.failed = 0; user.lockUntil = 0; user.lastLogin = new Date().toISOString(); saveUsers();
+  startSession(user);
+  lastLoginPassword = pw;                    // في الذاكرة بس — عشان نجدّد توكن السيرفر
+  if(sheetApiUrl){
+    const okSrv = await serverLogin(pw);
+    if(!okSrv) setTimeout(()=> showToast('دخلت محليًا، لكن السيرفر مارضاش يديك توكن — الحفظ على الشيت هيترفض. راجع المفتاح وتبويب Users.'), 1800);
+  }
+  document.getElementById('loginPass').value = '';
+  msg.className = 'login-msg ok'; msg.textContent = '';
+  closeOverlay('loginOverlay');
+  showToast('أهلاً ' + (user.name || user.u));
+  /* لو كان جاي من مربع معيّن، نكمّل له طريقه لنفس المربع بعد الدخول */
+  if(pendingTile){
+    const t = pendingTile; pendingTile = null;
+    setTimeout(()=> t.click(), 60);
+  }else{
+    openOverlay('mainOverlay');
+  }
+  if(user.mustChange) setTimeout(()=> showToast('مهم: غيّر كلمة المرور الافتراضية من شاشة المستخدمين'), 2400);
+}
+
+/* ---------- شاشة المستخدمين ---------- */
+function buildPermGrid(perms){
+  const wrap = document.getElementById('nuPerms');
+  wrap.innerHTML = cardList().map(c=> `
+    <label class="perm-item">
+      <input type="checkbox" data-perm="${c.id}" ${perms && perms[c.id] ? 'checked' : ''}>
+      <span>${c.title}</span>
+    </label>`).join('');
+}
+function resetUserForm(){
+  editingUser = null;
+  document.getElementById('userFormTitle').textContent = 'إضافة مستخدم جديد';
+  document.getElementById('nuUser').value = '';
+  document.getElementById('nuName').value = '';
+  document.getElementById('nuPass').value = '';
+  document.getElementById('nuUser').disabled = false;
+  document.getElementById('nuAdmin').value = '0';
+  document.getElementById('usersMsg').textContent = '';
+  buildPermGrid({});
+}
+function renderUsersTable(){
+  loadUsers();
+  const t = document.getElementById('usersTable');
+  const permCount = u=> u.admin ? 'الكل' : Object.values(u.perms || {}).filter(Boolean).length + ' جدول';
+  t.innerHTML = `
+    <thead><tr><th>المستخدم</th><th>الاسم</th><th>النوع</th><th>الصلاحيات</th><th>الحالة</th><th>آخر دخول</th><th></th></tr></thead>
+    <tbody>
+      ${users.map(u=> `
+        <tr>
+          <td style="font-weight:800;">${u.u}</td>
+          <td>${u.name || '-'}</td>
+          <td>${u.admin ? '<span class="badge admin">أدمن</span>' : 'مستخدم'}</td>
+          <td>${permCount(u)}</td>
+          <td>${u.active === false ? '<span class="badge off">موقوف</span>' : '<span class="badge on">مفعّل</span>'}</td>
+          <td style="color:var(--text-dim);font-size:11px;">${u.lastLogin ? fmtDateTime(new Date(u.lastLogin)) : '—'}</td>
+          <td><div class="u-actions">
+            <button class="mini-btn" data-act="edit" data-u="${u.u}">تعديل</button>
+            <button class="mini-btn" data-act="toggle" data-u="${u.u}">${u.active === false ? 'تفعيل' : 'إيقاف'}</button>
+            <button class="mini-btn danger" data-act="del" data-u="${u.u}">حذف</button>
+          </div></td>
+        </tr>`).join('')}
+    </tbody>`;
+  t.querySelectorAll('button[data-act]').forEach(b=>{
+    b.onclick = ()=> userAction(b.dataset.act, b.dataset.u);
+  });
+}
+function userAction(act, uName){
+  const user = findUser(uName);
+  if(!user) return;
+  if(act === 'edit'){
+    editingUser = user.u;
+    document.getElementById('userFormTitle').textContent = 'تعديل المستخدم: ' + user.u;
+    document.getElementById('nuUser').value = user.u;
+    document.getElementById('nuUser').disabled = true;
+    document.getElementById('nuName').value = user.name || '';
+    document.getElementById('nuPass').value = '';
+    document.getElementById('nuAdmin').value = user.admin ? '1' : '0';
+    document.getElementById('usersMsg').className = 'login-msg';
+    document.getElementById('usersMsg').textContent = 'سيب خانة كلمة المرور فاضية لو مش عايز تغيّرها.';
+    buildPermGrid(user.perms || {});
+    return;
+  }
+  if(act === 'toggle'){
+    if(user.admin && user.active !== false && users.filter(x=>x.admin && x.active !== false).length <= 1){
+      showToast('مينفعش توقف آخر أدمن في النظام'); return;
+    }
+    user.active = (user.active === false);
+    saveUsers(true); renderUsersTable(); showToast('تم تحديث حالة ' + user.u);
+    return;
+  }
+  if(act === 'del'){
+    if(user.admin && users.filter(x=>x.admin).length <= 1){ showToast('مينفعش تحذف آخر أدمن'); return; }
+    if(session && session.u === user.u){ showToast('مينفعش تحذف الحساب اللي انت داخل بيه'); return; }
+    if(!confirm('تأكيد حذف المستخدم ' + user.u + '؟')) return;
+    users = users.filter(x=> x.u !== user.u);
+    saveUsers(true); renderUsersTable(); resetUserForm(); showToast('تم حذف المستخدم');
+  }
+}
+async function saveUserFromForm(){
+  const msg = document.getElementById('usersMsg');
+  msg.className = 'login-msg err';
+  const uName = document.getElementById('nuUser').value.trim();
+  const name = document.getElementById('nuName').value.trim();
+  const pw = document.getElementById('nuPass').value;
+  const admin = document.getElementById('nuAdmin').value === '1';
+  const perms = {};
+  document.querySelectorAll('#nuPerms input[data-perm]').forEach(cb=>{ if(cb.checked) perms[cb.dataset.perm] = true; });
+  if(!uName){ msg.textContent = 'اكتب اسم المستخدم.'; return; }
+  if(!/^[A-Za-z0-9._-]{3,20}$/.test(uName)){ msg.textContent = 'اسم المستخدم: حروف إنجليزي وأرقام و . _ - من 3 لـ 20 حرف.'; return; }
+  const existing = findUser(uName);
+  if(editingUser){
+    if(pw && pw.length < 6){ msg.textContent = 'كلمة المرور 6 حروف على الأقل.'; return; }
+    existing.name = name || existing.name;
+    existing.admin = admin;
+    existing.perms = perms;
+    if(pw){ existing.salt = randSalt(); existing.hash = await hashPw(pw, existing.salt); existing.hashAlt = ''; existing.mustChange = false; }
+    if(session && session.u === existing.u){ session.admin = admin; session.perms = perms; saveSession(); applyAuthUI(); }
+    saveUsers(true); renderUsersTable(); resetUserForm();
+    msg.className = 'login-msg ok'; msg.textContent = 'تم حفظ التعديلات.';
+    showToast('تم تحديث المستخدم');
+    return;
+  }
+  if(existing){ msg.textContent = 'الاسم ده مستخدم بالفعل.'; return; }
+  if(!pw || pw.length < 6){ msg.textContent = 'كلمة المرور 6 حروف على الأقل.'; return; }
+  const salt = randSalt();
+  users.push({ u:uName, name:name || uName, salt, hash: await hashPw(pw, salt),
+    admin, active:true, perms, created:new Date().toISOString(), lastLogin:'', failed:0, lockUntil:0 });
+  saveUsers(true); renderUsersTable(); resetUserForm();
+  msg.className = 'login-msg ok'; msg.textContent = 'تم إضافة المستخدم.';
+  showToast('تم إضافة المستخدم ' + uName);
+}
+
+/* ---------- سجل التغييرات (Audit) ---------- */
+function loadAudit(){
+  try{ return JSON.parse(localStorage.getItem(AUDIT_KEY) || '[]'); }catch(e){ return []; }
+}
+function saveAudit(list){
+  try{ localStorage.setItem(AUDIT_KEY, JSON.stringify(list.slice(-300))); }catch(e){ /* تجاهل */ }
+}
+function allMetricsFlat(){
+  return [...state.kpiSections.flatMap(x=>x.metrics), ...state.lines.flatMap(x=>x.metrics)];
+}
+function snapshotValues(){
+  const out = {};
+  allMetricsFlat().forEach(m=>{
+    out[m.id] = { name:m.name, plan:m.plan, target:m.target, actual:m.actual, eff:m.eff,
+      pctGood:m.pctGood, pctWarn:m.pctWarn, planSign:m.planSign, actualSign:m.actualSign, targetSign:m.targetSign };
+  });
+  return out;
+}
+function diffAndLog(before){
+  const entries = [];
+  const who = session ? (session.name || session.u) : 'غير معروف';
+  const stamp = new Date().toISOString();
+  allMetricsFlat().forEach(m=>{
+    const b = before[m.id]; if(!b) return;
+    Object.keys(FIELD_LABEL).forEach(f=>{
+      const from = b[f], to = m[f];
+      if(from === undefined && to === undefined) return;
+      if(String(from === undefined ? '' : from) === String(to === undefined ? '' : to)) return;
+      entries.push({ t:stamp, u:who, metric:m.name, field:FIELD_LABEL[f],
+        from:(from === '' || from === undefined) ? '—' : String(from),
+        to:(to === '' || to === undefined) ? '—' : String(to),
+        date:state.meta.date, shift:state.meta.shift });
+    });
+  });
+  if(entries.length) saveAudit(loadAudit().concat(entries));
+  return entries;
+}
+function renderAuditList(){
+  const wrap = document.getElementById('auditList');
+  const list = loadAudit().slice().reverse();
+  if(!list.length){ wrap.innerHTML = '<div class="locked-note">لسه مفيش تغييرات مسجّلة.</div>'; return; }
+  wrap.innerHTML = list.map(e=> `
+    <div class="audit-row">
+      <span class="a-time">${fmtDateTime(new Date(e.t))}</span>
+      <span class="a-user">${e.u}</span>
+      <span class="a-what">${e.metric} — ${e.field}:
+        <span class="a-val" style="color:var(--text-dim)">${e.from}</span> ←
+        <span class="a-val">${e.to}</span>
+        <span style="color:var(--text-dim);font-size:11px;">(${e.date || ''} ${e.shift || ''})</span>
+      </span>
+    </div>`).join('');
+}
+
+/* ---------- صور اليوم/الوردية: أساس أسهم المقارنة والرسم المصغّر ---------- */
+function loadSnaps(){
+  try{ return JSON.parse(localStorage.getItem(SNAP_KEY) || '{}'); }catch(e){ return {}; }
+}
+function snapKey(){ return state.meta.date + '|' + state.meta.shift; }
+function saveDaySnapshot(){
+  const snaps = loadSnaps();
+  const vals = {};
+  allMetricsFlat().forEach(m=>{ vals[m.id] = m.actual; });
+  snaps[snapKey()] = { t:new Date().toISOString(), vals };
+  const keys = sortedSnapKeys(snaps);
+  while(keys.length > 120){ delete snaps[keys.shift()]; }   // نحتفظ بآخر 120 قراءة بس
+  try{ localStorage.setItem(SNAP_KEY, JSON.stringify(snaps)); }catch(e){ /* تجاهل */ }
+}
+function sortedSnapKeys(snaps){
+  return Object.keys(snaps).sort((a,b)=>{
+    const [da,sa] = a.split('|'), [db,sb] = b.split('|');
+    if(da !== db) return da.localeCompare(db);
+    return (SHIFT_ORDER[sa] || 0) - (SHIFT_ORDER[sb] || 0);
+  });
+}
+function prevSnapVals(){
+  const snaps = loadSnaps();
+  const keys = sortedSnapKeys(snaps);
+  const cur = snapKey();
+  const idx = keys.indexOf(cur);
+  const prevKey = (idx === -1) ? keys[keys.length-1] : keys[idx-1];
+  return prevKey ? (snaps[prevKey].vals || {}) : null;
+}
+/* شريط رقيق تحت الرقم الفعلي بيوضح نسبة تحقيق المخطط بصريًا */
+/* الشريط الملوّن: أحمر بنبضة سريعة، أصفر بنبضة هادية، أخضر بهالة ثابتة،
+   وفوق المستهدف بياخد نجمة ذهبية عشان يتميّز أكتر من العادي */
+function statusChip(inf){
+  const st = inf.st;
+  /* فوق المستهدف: نفس دائرة "ضمن المستهدف" بالظبط بس بفلاش أخضر — والنجمة مكانها
+     في وسام النسبة جانب الرقم، مش في الدائرة. */
+  const extra = st === 'bad' ? ' pulse' : (st === 'warn' ? ' pulse-warn' : (st === 'good' ? (inf.exceed ? ' pulse-good' : ' glow') : ''));
+  const icon = STATUS_ICON[st];
+  const tip = st === 'na' ? 'مفيش قراءة' :
+    (inf.exceed ? 'أحسن من المستهدف بـ ' + Math.abs(Math.round(inf.dev*10)/10) + '%'
+                : 'الانحراف عن المستهدف: ' + (Math.round(inf.dev*10)/10) + '%');
+  return `<span class="status ${st}${extra}" title="${tip}">${icon}</span>`;
+}
+/* وسام صغير جانب الرقم: أخضر ذهبي لو فوق المستهدف، ورمادي لو تحته وهو لسه مقبول */
+/* وسام الفرق عن المستهدف:
+   • دايمًا بنفس الاتجاه (LTR) عشان الإشارة تفضل قبل الرقم في كل الحالات ومتلفّش.
+   • الإشارة موجب أو سالب واضحة (+2.4% / -20%) — و"—" لوحدها معناها مفيش قراءة،
+     فمفيش لبس بين الشرطة والسالب.
+   • اللون هو اللي بيقول ده حلو ولا وحش. */
+function devBadge(inf, m){
+  if(!badgeVisible(m)) return '';                    // الوسام للإنتاج والكفاءة بس
+  if(inf.st === 'na' || !isFinite(inf.raw)) return '';
+  const v = Math.round(Math.abs(inf.raw)*10)/10;
+  if(v < 0.05) return '';
+  const txt = (inf.raw > 0 ? '+' : '-') + v + '%';
+  if(inf.exceed) return `<span class="dev-badge over" title="أحسن من المستهدف"><span class="star">★</span><span class="num">${txt}</span></span>`;
+  const cls = inf.dev > EXCEED_MARGIN ? inf.st : 'good';
+  return `<span class="dev-badge ${cls}" title="فرق عن المستهدف"><span class="num">${txt}</span></span>`;
+}
+function planBar(m, st){
+  if(m.noPlan) return '';
+  const p = parseNum(m.plan), a = parseNum(m.actual);
+  if(isNaN(p) || isNaN(a) || p === 0) return '';
+  const pct = Math.max(0, Math.min(100, (a/p)*100));
+  return `<div class="mini-bar" title="نسبة الفعلي من المخطط"><span class="${st}" style="width:${pct.toFixed(0)}%"></span></div>`;
+}
+/* رسم مصغّر (Sparkline) لإنتاج الخط في آخر قراءات محفوظة */
+function sparkForLine(line){
+  const m = line.metrics[0];
+  if(!m) return '';
+  const snaps = loadSnaps();
+  const keys = sortedSnapKeys(snaps).slice(-8);
+  const vals = keys.map(k=> parseNum((snaps[k].vals || {})[m.id])).filter(v=> !isNaN(v));
+  if(vals.length < 2) return '';
+  const w = 200, h = 30, max = Math.max(...vals), min = Math.min(...vals);
+  const gap = w/(vals.length-1);
+  const y = v=> h - 3 - ((v-min)/((max-min)||1))*(h-8);
+  const pts = vals.map((v,i)=> `${(i*gap).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const lastGood = vals[vals.length-1] >= vals[vals.length-2];
+  const color = (m.dir === 'down' ? !lastGood : lastGood) ? 'var(--good)' : 'var(--warn)';
+  return `<div class="spark-wrap">
+    <div class="spark-label">${m.name} — آخر ${vals.length} قراءة</div>
+    <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:30px;display:block;">
+      <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2"/>
+      <circle cx="${((vals.length-1)*gap).toFixed(1)}" cy="${y(vals[vals.length-1]).toFixed(1)}" r="2.5" fill="${color}"/>
+    </svg>
+  </div>`;
+}
+
+/* ---------- شريط المعلومات الحية ---------- */
+/* ============ معادلة "أداء اليوم" (قابلة للتعديل من لوحة التحكم — أدمن فقط) ============
+   النتيجة = مجموع (وزن الجدول × نقاط حالة المؤشر) ÷ مجموع (وزن الجدول × نقاط "ضمن المستهدف") × 100
+   • نقاط كل حالة انت اللي تحددها (الافتراضي: ضمن المستهدف 100، متابعة 50، خارج المستهدف 0).
+   • وزن كل جدول انت اللي تحدده (الافتراضي 1 لكل جدول، و 0 معناها الجدول مش داخل الحساب).
+   • أي مؤشر مفيهوش قراءة (—) بيتشال من الحساب خالص عشان مايظلمش النتيجة.
+   • "فوق المستهدف" بياخد نقاط زيادة اختيارية (bonusExceed) لو حبيت تكافئ التميّز. */
+var SCORE_KEY = 'rl_score_cfg_v1';
+var scoreCfg = { pGood:100, pWarn:50, pBad:0, bonusExceed:0, weights:{} };
+function loadScoreCfg(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(SCORE_KEY) || 'null');
+    if(raw && typeof raw === 'object') scoreCfg = Object.assign(scoreCfg, raw);
+  }catch(e){ /* تجاهل */ }
+}
+function saveScoreCfg(push){
+  try{ localStorage.setItem(SCORE_KEY, JSON.stringify(scoreCfg)); }catch(e){}
+  if(push && sheetApiUrl && isAdmin()) postToSheet({ scoreConfig: scoreCfg });
+}
+loadScoreCfg();
+loadShiftCfg();
+function cardWeight(cardId){
+  const w = parseFloat(scoreCfg.weights[cardId]);
+  return isNaN(w) ? 1 : w;
+}
+function factoryScore(){
+  let got = 0, max = 0;
+  const add = (info, cardId)=>{
+    if(info.st === 'na') return;
+    const w = cardWeight(cardId);
+    if(w <= 0) return;
+    const pts = info.st === 'good' ? (scoreCfg.pGood + (info.exceed ? (parseFloat(scoreCfg.bonusExceed) || 0) : 0))
+              : info.st === 'warn' ? scoreCfg.pWarn : scoreCfg.pBad;
+    got += w * pts;
+    max += w * scoreCfg.pGood;
+  };
+  state.kpiSections.forEach(sec=> sec.metrics.forEach(m=> add(statusInfo(m,'target'), sec.id)));
+  state.lines.forEach(l=> l.metrics.forEach(m=> add(statusInfo(m,'plan'), l.id)));
+  if(!max) return null;
+  /* المكافأة بتعوّض خسارة في مؤشرات تانية، بس النتيجة مابتزيدش عن 100% عشان
+     الرقم يفضل مفهوم على الشاشة */
+  return Math.max(0, Math.min(100, Math.round((got/max)*100)));
+}
+/* ================== أيام بدون حوادث ==================
+   الرقم بيحدّده الأدمن مرة واحدة، وبعدها بيزيد يوم بيوم لوحده:
+       المعروض = الرقم المكتوب + عدد الأيام اللي فاتت من تاريخ كتابته
+   ولو سجّلنا حادثة في "عدد الحوادث الوشيكة" (الفعلي أكبر من صفر)، العدّاد
+   بيظهر صفر فورًا وبيتصفّر رسميًا مع الحفظ (يبدأ العد من تاريخ الحادثة).
+   الإعداد بيتخزن محليًا وبيتزامن مع تبويب Meta عشان كل الشاشات تشوف نفس الرقم. */
+var SAFE_KEY = 'rl_safe_days_v1';
+var safeCfg = { base:null, anchor:'' };          // base = الرقم المكتوب، anchor = تاريخ كتابته
+function loadSafeCfg(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(SAFE_KEY) || 'null');
+    if(raw && typeof raw === 'object') safeCfg = Object.assign(safeCfg, raw);
+  }catch(e){ /* تجاهل */ }
+}
+function saveSafeCfg(push){
+  try{ localStorage.setItem(SAFE_KEY, JSON.stringify(safeCfg)); }catch(e){}
+  if(push && sheetApiUrl && isAdmin()) postToSheet({ safeConfig: safeCfg });
+}
+function daysBetween(fromDate, toDate){
+  const a = new Date(fromDate + 'T00:00:00'), b = new Date(toDate + 'T00:00:00');
+  if(isNaN(a.getTime()) || isNaN(b.getTime())) return NaN;
+  return Math.round((b - a) / 86400000);
+}
+/* هل فيه حادثة مسجّلة في اليوم المعروض؟ */
+function incidentToday(){
+  const inc = allMetricsFlat().find(m=> m.id === 's1');   // عدد الحوادث الوشيكة
+  if(!inc) return false;
+  const v = safeNum(inc.actual);
+  return !isNaN(v) && v > 0;
+}
+function daysWithoutIncidents(){
+  const inc = allMetricsFlat().find(m=> m.id === 's1');
+  if(!inc) return null;
+  if(incidentToday()) return 0;                          // حادثة النهاردة = العدّاد صفر
+  if(safeCfg.base !== null && safeCfg.anchor){
+    const gap = daysBetween(safeCfg.anchor, state.meta.date);
+    if(!isNaN(gap)) return Math.max(0, Math.round(safeCfg.base) + Math.max(0, gap));
+  }
+  /* لسه الأدمن مكتبش رقم؟ نحسبه من القراءات المحفوظة زي الأول */
+  const snaps = loadSnaps();
+  const keys = sortedSnapKeys(snaps).reverse();
+  const seen = new Set([state.meta.date]);
+  let days = 1;
+  for(const k of keys){
+    const [d] = k.split('|');
+    if(seen.has(d)) continue;
+    const v = safeNum((snaps[k].vals || {})['s1']);
+    if(isNaN(v) || v > 0) break;
+    seen.add(d); days++;
+  }
+  return days;
+}
+loadSafeCfg();
+/* ---------- آخر تحديث = آخر مرة اتعدّلت فيها بيانات المؤشرات ----------
+   مش آخر مرة الصفحة كلّمت الشيت. بيتسجّل عند كل حفظ، وبيتقرا من الشيت كمان
+   (meta.lastEditAt) لو موجود عشان كل الشاشات تشوف نفس الوقت.
+   والنقطة اللي جانبه بتبقى خضرا لو الاتصال بجوجل شيت شغّال. */
+var LAST_EDIT_KEY = 'rl_last_edit_at';
+function getLastEditAt(){
+  const t = parseInt(localStorage.getItem(LAST_EDIT_KEY) || '0', 10);
+  return isNaN(t) ? 0 : t;
+}
+function markLastEdit(when){
+  const t = when ? new Date(when).getTime() : Date.now();
+  if(!isFinite(t)) return;
+  if(t > getLastEditAt()){
+    try{ localStorage.setItem(LAST_EDIT_KEY, String(t)); }catch(e){ /* تجاهل */ }
+  }
+}
+function humanSince(ts){
+  const mins = Math.floor((Date.now() - ts) / 60000);
+  if(mins < 1) return 'الآن';
+  if(mins < 60) return 'منذ ' + mins + ' دقيقة';
+  const hrs = Math.floor(mins / 60);
+  if(hrs < 24) return 'منذ ' + hrs + ' ساعة';
+  const days = Math.floor(hrs / 24);
+  return days === 1 ? 'أمس' : ('منذ ' + days + ' يوم');
+}
+function renderHeaderChips(){
+  const wrap = document.getElementById('hdrChips');
+  if(!wrap) return;
+  const score = factoryScore();
+  const cls = score === null ? '' : (score >= 90 ? 'score-good' : score >= 75 ? 'score-warn' : 'score-bad');
+  const days = daysWithoutIncidents();
+  /* نص "آخر تحديث": من آخر تعديل فعلي للمؤشرات */
+  const edited = getLastEditAt();
+  const editTxt = edited ? humanSince(edited) : 'لسه مفيش تعديل مسجّل';
+  /* النقطة: خضرا = الاتصال بجوجل شيت شغّال، صفرا = متصل بس البيانات قديمة، رمادي = مفيش شيت */
+  let ledCls = '', ledTip = 'مفيش شيت متصل — الحفظ محلي بس';
+  if(sheetApiUrl && lastSyncAt){
+    const mins = Math.floor((Date.now() - lastSyncAt) / 60000);
+    ledCls = mins <= 5 ? 'live' : 'stale';
+    ledTip = mins <= 5 ? 'متصل بجوجل شيت' : ('آخر مزامنة مع الشيت منذ ' + mins + ' دقيقة');
+  }else if(sheetApiUrl){
+    ledTip = 'جارِ الاتصال بجوجل شيت...';
+  }
+  wrap.innerHTML = `
+    <span class="chip" title="${ledTip}"><span class="dotled ${ledCls}"></span>آخر تحديث: <b>${editTxt}</b></span>
+    <span class="chip">🕒 <b id="chipClock">${fmtTime(new Date())}</b></span>
+    <span class="chip">${state.meta.dayName || ''} ${state.meta.date} — وردية <b>${state.meta.shift}</b>${shiftCfg && shiftCfg.auto ? ' <span style="opacity:.6">(تلقائي)</span>' : ''}</span>
+    ${score === null ? '' : `<span class="chip ${cls}">أداء اليوم: <b>${score}%</b></span>`}
+    ${days === null ? '' : `<span class="chip">${days > 0 ? 'أيام بدون حوادث: <b>' + days + '</b>' : '<b style="color:var(--bad)">تم تسجيل حادث اليوم</b>'}</span>`}
+    ${session ? `<span class="chip">👤 <b>${session.name || session.u}</b></span>` : ''}`;
+}
+
+/* ---------- ترتيب الكروت (السحب) بيتحفظ ---------- */
+function saveCardOrder(){
+  const order = {};
+  ['kpiRow','linesRow'].forEach(rowId=>{
+    const row = document.getElementById(rowId);
+    if(row) order[rowId] = Array.from(row.children).map(c=> c.dataset.id).filter(Boolean);
+  });
+  try{ localStorage.setItem(ORDER_KEY, JSON.stringify(order)); }catch(e){ /* تجاهل */ }
+}
+function applyCardOrder(){
+  let order = {};
+  try{ order = JSON.parse(localStorage.getItem(ORDER_KEY) || '{}'); }catch(e){ return; }
+  ['kpiRow','linesRow'].forEach(rowId=>{
+    const row = document.getElementById(rowId);
+    const wanted = order[rowId];
+    if(!row || !Array.isArray(wanted)) return;
+    wanted.forEach(id=>{
+      const el = row.querySelector(`[data-id="${id}"]`);
+      if(el) row.appendChild(el);        // نرتّبهم بالترتيب المحفوظ، والجديد يتأخر في الآخر
+    });
+  });
+}
+
+/* ---------- تحقق من المدخلات قبل الحفظ ---------- */
+function validateEditInputs(){
+  const numFields = ['plan','target','actual','eff','pctGood','pctWarn'];   // الاسم والوسام والعلامات نصية
+  let firstBad = null, count = 0;
+  document.querySelectorAll('#editTableWrap input[data-id]').forEach(inp=>{
+    inp.classList.remove('invalid');
+    if(numFields.indexOf(inp.dataset.field) === -1) return;
+    const raw = String(inp.value).replace(/[,%≥≤><\s]/g, '');
+    if(raw === '' || raw === '-') return;                 // فاضي أو "—" مسموح
+    if(!/^-?\d+(\.\d+)?$/.test(raw)){
+      inp.classList.add('invalid'); count++;
+      if(!firstBad) firstBad = inp;
+    }
+  });
+  if(count){
+    showToast('فيه ' + count + ' خانة فيها قيمة غير رقمية — صححها الأول');
+    if(firstBad){ firstBad.focus(); firstBad.select && firstBad.select(); }
+    return false;
+  }
+  return true;
+}
+
+/* ---------- ربط الأحداث (بيتنادى في الآخر بعد ما كل الـhandlers الأصلية تتسجّل) ---------- */
+async function initAuthUI(){
+  await ensureDefaultAdmin();
+  loadSession();
+  applyAuthUI();
+
+  document.getElementById('openControlBtn').onclick = ()=>{
+    /* لوحة التحكم بتفتح على طول — إعدادات العرض متاحة للكل، والتعديل هو اللي بيطلب دخول */
+    if(isLoggedIn()) resetIdleTimer();
+    openOverlay('mainOverlay');
+  };
+  document.getElementById('loginTile').onclick = ()=> openLoginFor(null);
+  document.getElementById('loginBtn').onclick = doLogin;
+  document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key === 'Enter') doLogin(); });
+  document.getElementById('loginUser').addEventListener('keydown', e=>{ if(e.key === 'Enter') doLogin(); });
+
+  const logoutTile = document.getElementById('logoutTile');
+  if(logoutTile) logoutTile.onclick = ()=> logout();
+
+  const usersTile = document.getElementById('usersTile');
+  if(usersTile) usersTile.addEventListener('click', ()=>{ if(isAdmin()){ renderUsersTable(); resetUserForm(); } });
+  document.getElementById('saveUserBtn').onclick = saveUserFromForm;
+  document.getElementById('resetUserFormBtn').onclick = resetUserForm;
+
+  const auditTile = document.getElementById('auditTile');
+  if(auditTile) auditTile.addEventListener('click', renderAuditList);
+  document.getElementById('clearAuditBtn').onclick = ()=>{
+    if(!isAdmin()){ showToast('الأدمن فقط يقدر يفرّغ السجل'); return; }
+    if(!confirm('تفريغ سجل التغييرات المحلي؟')) return;
+    saveAudit([]); renderAuditList(); showToast('تم تفريغ السجل');
+  };
+
+  ['click','keydown','mousemove'].forEach(ev=>
+    document.addEventListener(ev, ()=>{ if(session) resetIdleTimer(); }, { passive:true }));
+
+  setInterval(()=>{
+    const c = document.getElementById('chipClock');
+    if(c) c.textContent = fmtTime(new Date());
+  }, 1000);
+  setInterval(renderHeaderChips, 60000);   // تحديث "آخر تحديث منذ..." كل دقيقة
+}
+
+/* ================== مواعيد الورديات ==================
+   بداية كل وردية بتتحدد من لوحة التحكم، والوردية الحالية بتتعرف من الوقت:
+   الوردية بتفضل شغالة من ساعة بدايتها لحد بداية الوردية اللي بعدها (والليلية بتعدّي نص الليل). */
+var SHIFT_KEY = 'rl_shift_cfg_v1';
+var shiftCfg = { morning:'07:00', evening:'15:00', night:'23:00', auto:true };
+function loadShiftCfg(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(SHIFT_KEY) || 'null');
+    if(raw && typeof raw === 'object') shiftCfg = Object.assign(shiftCfg, raw);
+  }catch(e){ /* تجاهل */ }
+}
+function saveShiftCfg(push){
+  try{ localStorage.setItem(SHIFT_KEY, JSON.stringify(shiftCfg)); }catch(e){}
+  if(push && sheetApiUrl && isAdmin()) postToSheet({ shiftConfig: shiftCfg });
+}
+function hhmmToMin(v){
+  const m = String(v || '').match(/^(\d{1,2}):(\d{2})$/);
+  if(!m) return NaN;
+  return parseInt(m[1],10)*60 + parseInt(m[2],10);
+}
+/* بترجّع اسم الوردية الحالية حسب الساعة (أو null لو المواعيد ناقصة) */
+function currentShiftByTime(now){
+  const t = now || new Date();
+  const cur = t.getHours()*60 + t.getMinutes();
+  const list = [
+    { name:'الصباحية', start:hhmmToMin(shiftCfg.morning) },
+    { name:'المسائية', start:hhmmToMin(shiftCfg.evening) },
+    { name:'الليلية',  start:hhmmToMin(shiftCfg.night) }
+  ].filter(x=> !isNaN(x.start)).sort((a,b)=> a.start - b.start);
+  if(!list.length) return null;
+  let pick = list[list.length-1];          // قبل أول بداية في اليوم = الوردية اللي عدّت من امبارح
+  list.forEach(x=>{ if(cur >= x.start) pick = x; });
+  return pick.name;
+}
+function applyAutoShift(){
+  if(!shiftCfg.auto) return false;
+  const nowShift = currentShiftByTime();
+  if(nowShift && nowShift !== state.meta.shift){ state.meta.shift = nowShift; return true; }
+  return false;
+}
+function buildShiftPanel(){
+  document.getElementById('shMorning').value = shiftCfg.morning || '';
+  document.getElementById('shEvening').value = shiftCfg.evening || '';
+  document.getElementById('shNight').value   = shiftCfg.night || '';
+  document.getElementById('shAuto').checked  = !!shiftCfg.auto;
+  const cur = currentShiftByTime();
+  document.getElementById('shiftPreview').textContent = cur
+    ? ('حسب المواعيد الحالية، إحنا دلوقتي في وردية: ' + cur)
+    : 'المواعيد ناقصة — اكتب ساعة بداية كل وردية.';
+}
+const shiftTileEl = document.getElementById('shiftTile');
+if(shiftTileEl) shiftTileEl.addEventListener('click', buildShiftPanel);
+document.getElementById('saveShiftBtn').onclick = ()=>{
+  if(!isAdmin()){ showToast('مواعيد الورديات يعدّلها الأدمن فقط'); return; }
+  const vals = {
+    morning: document.getElementById('shMorning').value,
+    evening: document.getElementById('shEvening').value,
+    night:   document.getElementById('shNight').value
+  };
+  const bad = Object.keys(vals).filter(k=> isNaN(hhmmToMin(vals[k])));
+  if(bad.length){ showToast('اكتب مواعيد الورديات التلاتة بشكل صحيح'); return; }
+  const mins = [hhmmToMin(vals.morning), hhmmToMin(vals.evening), hhmmToMin(vals.night)];
+  if(new Set(mins).size !== 3){ showToast('مينفعش وردتين يبدأوا في نفس الساعة'); return; }
+  shiftCfg.morning = vals.morning; shiftCfg.evening = vals.evening; shiftCfg.night = vals.night;
+  shiftCfg.auto = document.getElementById('shAuto').checked;
+  saveShiftCfg(true);
+  applyAutoShift(); buildShiftPanel(); renderAll();
+  showToast('تم حفظ مواعيد الورديات');
+};
+document.getElementById('resetShiftBtn').onclick = ()=>{
+  if(!isAdmin()){ showToast('مواعيد الورديات يعدّلها الأدمن فقط'); return; }
+  shiftCfg = { morning:'07:00', evening:'15:00', night:'23:00', auto:true };
+  saveShiftCfg(true); applyAutoShift(); buildShiftPanel(); renderAll();
+  showToast('رجعت المواعيد للافتراضي');
+};
+/* فحص كل دقيقة: أول ما الوقت يعدّي بداية وردية جديدة، اللوحة تتحول ليها لوحدها */
+setInterval(()=>{
+  if(applyAutoShift() && !isAnyOverlayOpen()) renderAll();
+}, 60000);
+
+/* ================== لوحة معادلة أداء اليوم ================== */
+function buildScorePanel(){
+  document.getElementById('scGood').value  = scoreCfg.pGood;
+  document.getElementById('scWarn').value  = scoreCfg.pWarn;
+  document.getElementById('scBad').value   = scoreCfg.pBad;
+  document.getElementById('scBonus').value = scoreCfg.bonusExceed || 0;
+  const grid = document.getElementById('weightGrid');
+  grid.innerHTML = cardList().map(c=> `
+    <label class="weight-item"><span>${c.title}</span>
+      <input data-weight="${c.id}" value="${cardWeight(c.id)}"></label>`).join('');
+  const pv = document.getElementById('scorePreview');
+  const sc = factoryScore();
+  pv.textContent = sc === null ? 'مفيش قراءات كفاية لحساب النتيجة.' : ('النتيجة بالمعادلة الحالية: ' + sc + '%');
+}
+const scoreTileEl = document.getElementById('scoreTile');
+if(scoreTileEl) scoreTileEl.addEventListener('click', buildScorePanel);
+document.getElementById('saveScoreBtn').onclick = ()=>{
+  if(!isAdmin()){ showToast('المعادلة يعدّلها الأدمن فقط'); return; }
+  const num = (id, dflt)=>{ const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? dflt : v; };
+  scoreCfg.pGood = num('scGood', 100);
+  scoreCfg.pWarn = num('scWarn', 50);
+  scoreCfg.pBad  = num('scBad', 0);
+  scoreCfg.bonusExceed = num('scBonus', 0);
+  if(scoreCfg.pGood <= 0){ showToast('نقاط "ضمن المستهدف" لازم تكون أكبر من صفر'); return; }
+  document.querySelectorAll('#weightGrid input[data-weight]').forEach(inp=>{
+    const v = parseFloat(inp.value);
+    scoreCfg.weights[inp.dataset.weight] = isNaN(v) ? 1 : Math.max(0, v);
+  });
+  saveScoreCfg(true);
+  buildScorePanel(); renderAll();
+  showToast('تم حفظ معادلة أداء اليوم');
+};
+document.getElementById('resetScoreBtn').onclick = ()=>{
+  if(!isAdmin()){ showToast('المعادلة يعدّلها الأدمن فقط'); return; }
+  scoreCfg = { pGood:100, pWarn:50, pBad:0, bonusExceed:0, weights:{} };
+  saveScoreCfg(true); buildScorePanel(); renderAll();
+  showToast('رجعت المعادلة للافتراضي');
+};
+
+/* Initial render — runs last, after every listener above is safely wired up */
+initAuthUI();
+applyAutoShift();          // نحدد الوردية الحالية من الوقت قبل أول رسم
+renderAll();
+
+/* لو التناوب بين الصفوف كان مفعّل من آخر مرة، شغّله تاني بعد أول render
+   (بعد ما الصفوف والكروت اتبنت فعليًا في الـDOM). */
+if(rotationEnabled){
+  rotationEnabled = false; // نخليها false مؤقتًا عشان setRotation(true) تبدأ بشكل نضيف وتحسب أول صف صح
+  setRotation(true);
+}
+</script>
+</body>
+</html>
