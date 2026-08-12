@@ -24,7 +24,20 @@
   --good:#22c55e;
   --warn:#f2a93c;
   --bad:#ef4444;
-  /* خلفية وإطار دائرة الحالة — كل ثيم يقدر يعيد تعريفهم (الثيم النهاري بيعمل كده) */
+  /* ---------- دوائر الحالة ----------
+     solid = لون الدائرة المصمت (فاقع ومضيء)، glow = لون الهالة اللي بتطلع منها.
+     كل ثيم يقدر يعيد تعريفهم (الثيم النهاري بيعمل كده بألوان أغمق شوية). */
+  /* الأصفر بدرجة إيموجي التحذير ⚠️ (كهرماني مايل للبرتقالي) */
+  /* ألوان أهدى: التشبّع أقل شوية والتدرّج أنعم، فالدايرة تبان بارزة ومريحة
+     للعين على شاشة شغالة طول اليوم — مش لون مصمت تقيل. */
+  /* ألوان الهوية مأخوذة من الشعار نفسه */
+  --brand-teal:#0b6562;   /* تركواز الشعار */
+  --brand-green:#a8c422;  /* أخضر الورقة */
+  --good-solid:#3fc978;  --good-solid2:#1e9553;  --good-glow:rgba(63,201,120,.34);
+  --warn-solid:#f0ad3d;  --warn-solid2:#c07f18;  --warn-glow:rgba(240,173,61,.34);
+  --bad-solid:#e8615a;   --bad-solid2:#bd3a34;   --bad-glow:rgba(232,97,90,.34);
+  --exceed-solid:#2ab369; --exceed-solid2:#127a46; --exceed-glow:rgba(42,179,105,.38);  /* فوق المستهدف: أغمق درجة */
+  /* خلفية خفيفة لأوسمة النسب (مش لدوائر الحالة) */
   --good-bg:rgba(34,197,94,.15);
   --warn-bg:rgba(242,169,60,.15);
   --bad-bg:rgba(239,68,68,.15);
@@ -56,21 +69,58 @@ h1,h2,h3{margin:0;}
 button{font-family:inherit;cursor:pointer;border:none;}
 input,select{font-family:inherit;}
 
+/* في الثيمات الغامقة: اسم الشركة يتفتّح شوية عشان يفضل مقروء على الخلفية الغامقة */
+html:not([data-theme="light"]) .brand .wordmark .l1{ color:#5fc9c2; }
+html:not([data-theme="light"]) .brand .wordmark .l2{ color:#c3dd3f; }
+
 /* ---------- HEADER ---------- */
 .app-header{
+  /* الجانبين بيتقاسموا المساحة الفاضية بالتساوي (flex:1) والعنوان في النص —
+     فمهما طال اسم الشركة أو زر لوحة التحكم، العنوان يفضل في المنتصف.
+     مستخدمين flexbox مش grid عشان متصفحات الشاشات القديمة. */
   display:flex;align-items:center;justify-content:space-between;
   direction:ltr;
-  padding:6px 4px 18px;
+  padding:6px 8px 18px;
+  gap:12px;
 }
+/* الجانبين بعرض ثابت متقارب عشان العنوان يقع في النص، والعنوان بياخد الباقي.
+   مفيش flex-basis:0 على الجانبين عشان مايتقلّصوش لصفر في المتصفحات القديمة. */
+.app-header > .ctrl-btn{ flex:0 0 auto; }
+.app-header > .brand{ flex:0 0 auto; }
 .app-header .side{display:flex;align-items:center;gap:10px;}
 .app-header .title{
-  flex:1;text-align:center;font-size:clamp(calc(18px*var(--font-scale)),2.2vw,calc(28px*var(--font-scale)));font-weight:800;
+  flex:1 1 auto;text-align:center;min-width:0;padding:0 6px;font-size:clamp(calc(18px*var(--font-scale)),2.2vw,calc(28px*var(--font-scale)));font-weight:800;
   letter-spacing:.2px;direction:rtl;
 }
-.brand{direction:rtl;display:flex;align-items:center;gap:10px;font-weight:700;color:var(--text-dim);font-size:calc(14px*var(--font-scale));}
+/* ---------- الشعار ----------
+   الصور مدمجة جوه الملف نفسه (base64) عشان تشتغل على GitHub Pages ومن غير إنترنت
+   ومن غير أي ملفات إضافية. اسم الشركة له نسختين: تركواز للثيم النهاري وأبيض
+   للثيمات الغامقة — بيتبدلوا تلقائيًا مع الثيم. */
+.brand{direction:rtl;display:flex;align-items:center;gap:calc(11px*var(--pad-scale));min-width:0;}
 .brand .logo{
-  width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--teal),var(--teal-dark));
-  display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:calc(14px*var(--font-scale));
+  width:calc(42px*var(--font-scale));height:calc(42px*var(--font-scale));flex-shrink:0;
+  background-image:url('data:image/png;base64,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');
+  background-size:contain;background-position:center;background-repeat:no-repeat;
+  filter:drop-shadow(0 1px 3px rgba(0,0,0,.28));
+}
+.brand .wordmark{
+  /* اسم الشركة نص مكتوب (مش صورة) — بنفس لون وروح الشعار:
+     السطر الأول بلون الشعار التركواز، والسطر التاني بالأخضر الفاتح اللي في الورقة.
+     في الثيمات الغامقة بيتفتّح شوية عشان يفضل مقروء. */
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;line-height:1.2;
+  font-weight:900;letter-spacing:.2px;white-space:nowrap;
+}
+.brand .wordmark .l1{
+  font-size:calc(16px*var(--font-scale));color:var(--brand-teal);
+}
+.brand .wordmark .l2{
+  font-size:calc(10.5px*var(--font-scale));font-weight:800;color:var(--brand-green);
+  letter-spacing:.6px;
+}
+@media (max-width:560px){
+  .brand .logo{ width:calc(34px*var(--font-scale)); height:calc(34px*var(--font-scale)); }
+  .brand .wordmark .l1{ font-size:calc(13.5px*var(--font-scale)); }
+  .brand .wordmark .l2{ font-size:calc(9.5px*var(--font-scale)); }
 }
 .ctrl-btn{
   display:flex;align-items:center;gap:8px;background:var(--bg-panel);border:1px solid var(--border);
@@ -142,11 +192,44 @@ input,select{font-family:inherit;}
   display:inline-flex;align-items:center;justify-content:center;width:calc(22px*var(--font-scale));height:calc(22px*var(--font-scale));border-radius:50%;
   font-size:calc(12px*var(--font-scale));font-weight:800;flex-shrink:0;
 }
-.status{border:1px solid transparent;}
-.status.good{background:var(--good-bg);color:var(--good);border-color:var(--good-ring);}
-.status.warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-ring);}
-.status.bad{background:var(--bad-bg);color:var(--bad);border-color:var(--bad-ring);}
-.status.na{background:rgba(139,160,175,.12);color:var(--text-dim);border-color:var(--border);}
+/* ---------- الحالة: دائرة مصمتة بلون فاقع + هالة ضوء ----------
+   اللون المصمت هو اللي بيخطف العين من مسافة على شاشة التلفزيون، والهالة بتزوّد
+   الإحساس إنها "مضيئة". العلامة جواها بيضا عشان أعلى تباين ممكن. */
+.status{
+  border:none;
+  color:#ffffff !important;
+  font-weight:900;
+  /* ظل خفيف تحت الأيقونة + لمعة داخلية فوق = إحساس إن الدايرة بارزة من الجدول،
+     والعلامة البيضا جواها بظل رقيق عشان تفضل واضحة على أي لون.
+     الألوان مخفّفة التشبّع عشان تبان مريحة مش مصمتة تقيلة. */
+  /* الظل ده بيعمل حدود غامقة رقيقة حوالين العلامة البيضا فتفضل مقروءة على أي لون */
+  text-shadow:0 1px 1px rgba(0,0,0,.55), 0 0 2px rgba(0,0,0,.35);
+  box-shadow:
+    0 2px 5px rgba(0,0,0,.22),
+    inset 0 1px 0 rgba(255,255,255,.30),
+    inset 0 -2px 4px rgba(0,0,0,.10);
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+/* اللون المصمت + الظل البارز + هالة خفيفة بلون الحالة */
+.status.good{
+  background:linear-gradient(180deg, var(--good-solid), var(--good-solid2));
+  box-shadow:0 2px 5px rgba(0,0,0,.22), 0 0 7px var(--good-glow),
+             inset 0 1px 0 rgba(255,255,255,.30), inset 0 -2px 4px rgba(0,0,0,.10);
+}
+.status.warn{
+  background:linear-gradient(180deg, var(--warn-solid), var(--warn-solid2));
+  box-shadow:0 2px 5px rgba(0,0,0,.22), 0 0 7px var(--warn-glow),
+             inset 0 1px 0 rgba(255,255,255,.30), inset 0 -2px 4px rgba(0,0,0,.10);
+}
+.status.bad{
+  background:linear-gradient(180deg, var(--bad-solid), var(--bad-solid2));
+  box-shadow:0 2px 5px rgba(0,0,0,.22), 0 0 7px var(--bad-glow),
+             inset 0 1px 0 rgba(255,255,255,.30), inset 0 -2px 4px rgba(0,0,0,.10);
+}
+.status.na{
+  background:var(--surface-2);color:var(--text-dim) !important;text-shadow:none;
+  border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.12);
+}
 
 /* ---------- SECTION BAR ---------- */
 .section-bar{
@@ -159,9 +242,9 @@ input,select{font-family:inherit;}
 .lines-row{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin-bottom:var(--gap);}
 .line-card .card-head{gap:8px;}
 .line-dot{width:calc(10px*var(--font-scale));height:calc(10px*var(--font-scale));border-radius:50%;flex-shrink:0;}
-.line-dot.good{background:var(--good);box-shadow:0 0 8px var(--good);}
-.line-dot.warn{background:var(--warn);box-shadow:0 0 8px var(--warn);}
-.line-dot.bad{background:var(--bad);box-shadow:0 0 8px var(--bad);}
+.line-dot.good{background:var(--good-solid);box-shadow:0 0 8px var(--good-glow);}
+.line-dot.warn{background:var(--warn-solid);box-shadow:0 0 8px var(--warn-glow);}
+.line-dot.bad{background:var(--bad-solid);box-shadow:0 0 8px var(--bad-glow);}
 .line-card .card-head h3{display:flex;align-items:center;gap:8px;flex-direction:row-reverse;overflow:visible;}
 .line-card .card-head h3 .line-title{overflow:hidden;overflow-wrap:break-word;min-width:0;flex:1;}
 
@@ -187,18 +270,35 @@ input,select{font-family:inherit;}
 .chip.score-good{border-color:rgba(34,197,94,.45);} .chip.score-warn{border-color:rgba(242,169,60,.45);} .chip.score-bad{border-color:rgba(239,68,68,.45);}
 
 /* ---------- فرق عن آخر قراءة + شريط تحقيق المخطط ---------- */
-/* لما الأوسمة تتقفل من لوحة التحكم: الخلايا تضيق والأرقام تتوسّط زي الأصل */
+/* .status.good.glow: ضمن المستهدف بيفضل ساكن — الكلاس سايب للتوافق بس */
 .delta.up{color:var(--good);} .delta.down{color:var(--bad);} .delta.flat{color:var(--text-dim);}
 .spark-wrap{padding:calc(6px*var(--pad-scale)) calc(12px*var(--pad-scale)) calc(10px*var(--pad-scale));}
 .spark-wrap .spark-label{font-size:calc(10.5px*var(--font-scale));color:var(--text-dim);font-weight:700;margin-bottom:2px;}
-@keyframes pulseBad{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.38);}50%{box-shadow:0 0 0 4px rgba(239,68,68,0);}}
-.status.bad.pulse{animation:pulseBad 3.2s ease-out infinite;}
-@keyframes pulseWarn{0%,100%{box-shadow:0 0 0 0 rgba(242,169,60,.5);}50%{box-shadow:0 0 0 5px rgba(242,169,60,0);}}
-.status.warn.pulse-warn{animation:pulseWarn 2.8s ease-out infinite;}
-.status.good.glow{box-shadow:0 0 0 2px var(--good-ring);}
-/* فوق المستهدف: نفس لون "ضمن المستهدف" مع فلاش أخضر خفيف */
-@keyframes pulseGood{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.45);}50%{box-shadow:0 0 0 5px rgba(34,197,94,0);}}
-.status.good.pulse-good{animation:pulseGood 2.4s ease-out infinite;}
+/* ---------- الحركة: "نَفَس" هادي بدل الفلاش ----------
+   الفلاش القديم كان بيوسّع الهالة بسرعة فكان مزعج على شاشة شغالة طول اليوم.
+   بدالها حركة واحدة بسيطة: الهالة بتتنفّس (تفتح شوية وترجع) والأيقونة بتعلى
+   نص بكسل — تحس إنها حية من غير ما تخطف نظرك عن الأرقام.
+   • ضمن المستهدف: ساكن تمامًا (مفيش داعي تلفت النظر لحاجة سليمة).
+   • يحتاج متابعة / خارج المستهدف: نَفَس بطيء، والأحمر أوضح شوية.
+   • فوق المستهدف: نفس النَفَس بلمسة صفرا خفيفة في حدود الهالة. */
+@keyframes breathe{
+  0%,100%{ filter:brightness(1);    transform:translateY(0); }
+  50%    { filter:brightness(1.14); transform:translateY(-0.5px); }
+}
+.status.warn.pulse-warn{ animation:breathe 4.2s ease-in-out infinite; }
+.status.bad.pulse{       animation:breathe 3s   ease-in-out infinite; }
+/* فوق المستهدف: نفس الدائرة — أخضر أغمق درجة + حلقة صفرا رقيقة تميّزه */
+.status.good.pulse-good{
+  background:linear-gradient(180deg, var(--exceed-solid), var(--exceed-solid2));
+  box-shadow:0 2px 5px rgba(0,0,0,.22), 0 0 7px var(--exceed-glow),
+             0 0 0 2px rgba(240,173,61,.5),
+             inset 0 1px 0 rgba(255,255,255,.30), inset 0 -2px 4px rgba(0,0,0,.10);
+  animation:breathe 4.6s ease-in-out infinite;
+}
+/* لو الجهاز مضبوط على "تقليل الحركة": الألوان والظل يفضلوا والحركة تتوقف */
+@media (prefers-reduced-motion: reduce){
+  .status{ animation:none !important; }
+}
 .val-exceed{color:#5ee68a !important;font-weight:800;}
 .dev-badge{font-size:calc(9.5px*var(--font-scale));font-weight:800;margin-right:5px;padding:1px 5px;border-radius:6px;white-space:nowrap;
   direction:ltr;unicode-bidi:isolate;display:inline-block;}
@@ -208,7 +308,7 @@ input,select{font-family:inherit;}
 .dev-badge.over{background:rgba(21,128,61,.4);color:#c9f7d4;}
 html[data-theme="light"] .dev-badge.over{background:#12703c;color:#ffffff;}
 html[data-theme="light"] .val-exceed{color:#12703c !important;}
-html[data-theme="light"] .status.good.exceed{background:#12703c;color:#ffd94a;}
+html[data-theme="light"] .val-exceed{color:#0e7a42 !important;}
 html[data-theme="light"] .metric-table th{color:var(--text-dim);}
 html[data-theme="light"] .metric-table td{border-top-color:rgba(15,30,40,.10);}
 .dev-badge.good{background:var(--good-bg);color:var(--good);}
@@ -277,8 +377,9 @@ html[data-theme="light"] .metric-table td{border-top-color:rgba(15,30,40,.10);}
 @media (max-width:640px){
   .kpi-row{grid-template-columns:1fr;}
   .lines-row{grid-template-columns:1fr;}
+  /* على الشاشات الصغيرة: الزرار والشعار في صف، والعنوان تحتهم بعرض كامل */
   .app-header{flex-wrap:wrap;gap:10px;}
-  .app-header .title{order:3;width:100%;}
+  .app-header .title{order:3;width:100%;flex:1 1 100%;}
   body{padding:calc(12px * var(--pad-scale)) calc(12px * var(--pad-scale));}
   /* على الموبايل: الأرقام والأوسمة بتنزل تحت بعض بدل ما تتزاحم */
   .metric-table{font-size:calc(12.5px*var(--font-scale));}
@@ -316,7 +417,10 @@ body.tv-mode .title{font-size:calc(30px*var(--font-scale));}
   .app-header{ padding:0 0 8px !important; border-bottom:1.5px solid #999; }
   .app-header .title{ color:#111 !important; font-size:17pt !important; }
   .brand{ color:#333 !important; }
-  .brand .logo{ background:#0c6e63 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  /* في الطباعة: الشعار بألوانه الأصلية واسم الشركة بلون الهوية */
+  .brand .logo{ filter:none !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .brand .wordmark .l1{ color:#0b6562 !important; }
+  .brand .wordmark .l2{ color:#6f8a12 !important; }
   .hdr-chips, #hdrChips{ color:#333 !important; }
   .kpi-row{ grid-template-columns:repeat(2,1fr) !important; gap:6mm !important; }
   .lines-row{ grid-template-columns:repeat(2,1fr) !important; gap:6mm !important; }
@@ -339,12 +443,15 @@ body.tv-mode .title{font-size:calc(30px*var(--font-scale));}
   thead{ display:table-header-group; }
   tr, td, th{ break-inside:avoid; page-break-inside:avoid; }
   /* الحالة: دوائر بحدود بدل ألوان خلفية باهتة */
-  .status{ border:1.2px solid currentColor; animation:none !important; box-shadow:none !important;
+  /* في الطباعة: نفس الدوائر المصمتة (بحبر أقل سطوعًا) بدون هالة ولا حركة */
+  .status{ animation:none !important; box-shadow:none !important; border:none !important;
+    color:#fff !important; text-shadow:none !important; filter:none !important; transform:none !important;
     -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .status.good{ color:#177245 !important; background:#e8f6ee !important; }
-  .status.warn{ color:#8a5a00 !important; background:#fdf3e2 !important; }
-  .status.bad{ color:#a02020 !important; background:#fdeaea !important; }
-  .status.na{ color:#666 !important; background:#f1f1f1 !important; }
+  .status.good{ background:#1a8f4c !important; color:#fff !important; }
+  .status.warn{ background:#b06f06 !important; color:#fff !important; }
+  .status.bad{ background:#c62828 !important; color:#fff !important; }
+  .status.good.pulse-good{ background:#0e7a42 !important; color:#fff !important; }
+  .status.na{ color:#666 !important; background:#f1f1f1 !important; border:1px solid #bbb !important; }
   .dev-badge{ background:transparent !important; color:#333 !important; }
   .dev-badge.over{ color:#177245 !important; }
   .status-key-line{ background:#fff !important; border:1px solid #999 !important; color:#333 !important;
@@ -550,7 +657,10 @@ input[type=text]{
     لوحة التحكم
   </button>
   <h1 class="title">لوحة متابعة مؤشرات الأداء اليومية</h1>
-  <div class="brand"><div class="logo">RL</div>ريتش لاند للصناعات الغذائية</div>
+  <div class="brand">
+    <div class="logo" title="ريتش لاند للصناعات الغذائية"></div>
+    <div class="wordmark"><span class="l1">ريتش لاند</span><span class="l2">للصناعات الغذائية</span></div>
+  </div>
 </div>
 
 <!-- شريط المعلومات الحية: الساعة + آخر تحديث + نتيجة أداء اليوم + أيام بدون حوادث -->
@@ -718,12 +828,12 @@ input[type=text]{
       <div class="panel-close" data-close="sheetOverlay">✕</div>
     </div>
     <div class="hint">
-      الصق رابط الـ Web App اللي طلع لك بعد نشر سكريبت Apps Script على الشيت (شكله: https://script.google.com/macros/s/.../exec)، ومعاه مفتاح الكتابة الموجود في أول <b>apps-script.gs</b> عند <code>WRITE_KEY</code>. الاتنين بيتحفظوا على الجهاز ده بس — <b>مش في الكود ولا على GitHub</b>.
+      رابط الـ Web App بيتحدد <b>مرة واحدة</b> — إما في ملف <code>config.js</code> (بيسري على كل الأجهزة تلقائيًا)، أو من هنا لو مش محدد. <b>الأدمن فقط</b> هو اللي يقدر يغيّره من الشاشة دي.
+      <br>مفيش مفتاح كتابة خلاص — الحماية على تسجيل الدخول: السكريبت بيتحقق من كلمة المرور بنفسه ويصدر تصريح مؤقت (توكن) صالح ١٢ ساعة، والصلاحيات بيقراها من تبويب <b>Users</b>.
     </div>
     <label class="field-label">رابط الـ Web App:</label>
     <input type="text" id="sheetUrl" placeholder="https://script.google.com/macros/s/xxxxxxxx/exec">
-    <label class="field-label" style="margin-top:10px;">مفتاح الكتابة (WRITE_KEY):</label>
-    <input type="password" id="sheetKey" placeholder="نفس القيمة الموجودة في apps-script.gs">
+    <div class="hint" id="sheetUrlLock" style="margin-top:6px;"></div>
     <button class="small-btn" id="sheetSyncBtn" style="width:100%;margin-top:10px;">اتصال ومزامنة الآن (اسحب البيانات من الشيت)</button>
     <button class="small-btn ghost" id="sheetSeedBtn" style="width:100%;margin-top:8px;">ارفع البيانات المعروضة للشيت (لأول تجهيز فقط)</button>
     <div class="hint" style="margin-top:6px;">⚠️ الزرار ده بيكتب القيم المعروضة حاليًا فوق اللي في الشيت. استخدمه <b>مرة واحدة بس</b> وانت بتجهّز شيت جديد لسه فاضي — بعد كده الشيت هو المرجع دايمًا.</div>
@@ -790,7 +900,10 @@ input[type=text]{
       <h2>👥 المستخدمون والصلاحيات</h2>
       <div class="panel-close" data-close="usersOverlay">✕</div>
     </div>
-    <div class="hint">كل مستخدم بتحدّد له الجداول اللي يقدر يعدّلها. الأدمن عنده كل الصلاحيات + تعديل الحدود + إدارة المستخدمين.</div>
+    <div class="hint">كل مستخدم بتحدّد له الجداول اللي يقدر يعدّلها. الأدمن عنده كل الصلاحيات + تعديل الحدود ومواعيد الورديات ومعادلة الأداء + إدارة المستخدمين + رابط الشيت.
+      <br>المستخدم بياخد <b>اسم وكلمة مرور بس</b> — يفتح رابط اللوحة ويسجّل دخول، مفيش أي إعداد تاني على جهازه.
+      <br><b>إيقاف</b> الحساب أحسن من الحذف: بيمنع الدخول فورًا ويبطّل أي جلسة مفتوحة، ويحتفظ باسمه في سجل التغييرات.</div>
+    <div class="hint" id="usersSyncNote" style="margin-bottom:10px;"></div>
     <div style="max-height:40vh;overflow:auto;margin-bottom:14px;"><table class="users-table" id="usersTable"></table></div>
     <div class="edit-section-label"><span class="dot"></span><span id="userFormTitle">إضافة مستخدم جديد</span></div>
     <div class="edit-meta-row">
@@ -933,7 +1046,12 @@ input[type=text]{
 <script src="config.js"></script>
 <script>
 var RL_CONFIG = (typeof window !== 'undefined' && window.RL_CONFIG) ? window.RL_CONFIG : {};
-var WRITE_KEY = localStorage.getItem('rl_write_key') || RL_CONFIG.WRITE_KEY || '';
+/* مفتاح الكتابة المشترك اتلغى. الحماية بقت على التوكن اللي بيصدره السيرفر بعد
+   التحقق من كلمة المرور، والدور بيتقرا من تبويب Users في الشيت.
+   المتغير سايبينه فاضي عشان أي شيت قديم لسه بيطلب مفتاح يفضل شغّال لو حطيته
+   في config.js — لكن مش مطلوب ولا بيتكتب في اللوحة. */
+var WRITE_KEY = RL_CONFIG.WRITE_KEY || '';
+try{ localStorage.removeItem('rl_write_key'); }catch(e){ /* تنظيف بقايا النسخة القديمة */ }
 /* ================== DATA MODEL ================== */
 /* dir:'up'   -> higher actual than target/plan is GOOD (e.g. production totals, efficiency, OTIF, GMP score)
    dir:'down' -> lower actual than target/plan is GOOD (e.g. waste, downtime, incidents, violations, hold cases) */
@@ -1144,7 +1262,9 @@ function metricById(id){
 function comparableActual(m){
   return safeNum(m ? m.actual : null);
 }
-var BADGE_METRICS = ['p1','p2','l4_1','l4_2','l3_1','l3_2','l2_1','l2_2','l1_1','l1_2'];
+/* بيظهر في صفوف كمية الإنتاج بس — إجمالي الإنتاج والإنتاج بالكيلو لكل خط.
+   صفوف الكفاءة اتشالت لأن الفرق فيها ظاهر أصلاً في عمود الكفاءة. */
+var BADGE_METRICS = ['p1','l4_1','l3_1','l2_1','l1_1'];
 function badgeVisible(m){
   return !!m && BADGE_METRICS.indexOf(m.id) !== -1;
 }
@@ -1753,13 +1873,19 @@ const THEMES = {
   /* الثيم النهاري: الوان الحالة أغمق شوية عن الافتراضي عشان تبان على الخلفية
      البيضا (الأخضر والأصفر الفاتحين كانوا شبه مختفيين)، والحدود أوضح،
      من غير مبالغة في التشبّع. */
-  light: { name:'فاتح (نهاري)', vars:{
+  light: { name:'فاتح (نهاري) — الافتراضي', vars:{
     '--bg-app':'#eef2f5', '--bg-glow':'#dbe6ec', '--bg-panel':'#ffffff', '--bg-card-head':'#eef3f6',
     '--surface-0':'#ffffff', '--surface-1':'#f2f5f7', '--surface-2':'#e6ecf0',
     '--border':'rgba(15,30,40,.18)', '--teal':'#0b8477', '--teal-dark':'#07685d',
     '--teal-glow':'rgba(12,143,128,.15)', '--text':'#10202b', '--text-dim':'#4a5a66',
     '--gold':'#9a6c18', '--blue':'#1f5fc4',
     '--good':'#157a41', '--warn':'#965e05', '--bad':'#c62828',
+    /* على الخلفية البيضا اللون الفاقع أوي بيوجع العين، فبنغمّقه درجة —
+       ولسه مصمت ومضيء وواضح من بعيد. */
+    '--good-solid':'#2fa862', '--good-solid2':'#197a43', '--good-glow':'rgba(47,168,98,.24)',
+    '--warn-solid':'#dda03a', '--warn-solid2':'#a8731a', '--warn-glow':'rgba(221,160,58,.24)',
+    '--bad-solid':'#d9564f',  '--bad-solid2':'#a83530',  '--bad-glow':'rgba(217,86,79,.24)',
+    '--exceed-solid':'#1f9457', '--exceed-solid2':'#0d6b3c', '--exceed-glow':'rgba(31,148,87,.28)',
     '--good-bg':'rgba(21,122,65,.13)', '--warn-bg':'rgba(150,94,5,.15)', '--bad-bg':'rgba(198,40,40,.12)',
     '--good-ring':'rgba(21,122,65,.55)', '--warn-ring':'rgba(150,94,5,.55)', '--bad-ring':'rgba(198,40,40,.55)'
   }},
@@ -1773,11 +1899,14 @@ const THEMES = {
 };
 
 function applyTheme(key, persist){
-  const theme = THEMES[key] || THEMES.teal;
+  const theme = THEMES[key] || THEMES.light;
   const root = document.documentElement.style;
   /* بنفضّي متغيرات الحالة الأول عشان لو الثيم الجديد مش بيعرّفها ترجع للافتراضي
      الموجود في :root، مش تفضل بقيم الثيم اللي قبله. */
-  ['--good','--warn','--bad','--good-bg','--warn-bg','--bad-bg','--good-ring','--warn-ring','--bad-ring']
+  ['--good','--warn','--bad','--good-bg','--warn-bg','--bad-bg','--good-ring','--warn-ring','--bad-ring',
+   '--good-solid','--warn-solid','--bad-solid','--exceed-solid',
+   '--good-solid2','--warn-solid2','--bad-solid2','--exceed-solid2',
+   '--good-glow','--warn-glow','--bad-glow','--exceed-glow']
     .forEach(k=> root.removeProperty(k));
   Object.entries(theme.vars).forEach(([k,v])=> root.setProperty(k, v));
   document.documentElement.setAttribute('data-theme', key);   // للتنسيقات الخاصة بثيم معيّن
@@ -1791,7 +1920,7 @@ function applyTheme(key, persist){
 function buildThemeGrid(){
   const grid = document.getElementById('themeGrid');
   if(!grid) return;
-  const current = localStorage.getItem('rl_theme') || 'teal';
+  const current = localStorage.getItem('rl_theme') || 'light';
   grid.innerHTML = Object.entries(THEMES).map(([key, t])=> `
     <div class="theme-swatch ${key === current ? 'active' : ''}" data-theme="${key}">
       <div class="swatch-bar">
@@ -1805,11 +1934,11 @@ function buildThemeGrid(){
   grid.querySelectorAll('.theme-swatch').forEach(sw=>{
     sw.onclick = ()=>{ applyTheme(sw.dataset.theme); showToast('تم تطبيق الثيم: ' + THEMES[sw.dataset.theme].name); };
     sw.onmouseenter = ()=>{ applyTheme(sw.dataset.theme, false); };
-    sw.onmouseleave = ()=>{ applyTheme(localStorage.getItem('rl_theme') || 'teal', false); };
+    sw.onmouseleave = ()=>{ applyTheme(localStorage.getItem('rl_theme') || 'light', false); };
   });
 }
 document.querySelector('[data-open="themeOverlay"]').addEventListener('click', buildThemeGrid);
-applyTheme(localStorage.getItem('rl_theme') || 'teal', false); // تطبيق آخر ثيم محفوظ عند فتح الملف
+applyTheme(localStorage.getItem('rl_theme') || 'light', false); // تطبيق آخر ثيم محفوظ عند فتح الملف
 
 /* ---- PDF via print ---- */
 /* الطباعة: بنقفل أي لوحة تحكم مفتوحة الأول، ونوقف مؤقتًا وضع التناوب/ملء الشاشة
@@ -2115,7 +2244,7 @@ function scriptMissingFeatures(json){
 }
 function describeSheetError(code){
   const map = {
-    bad_key:'مفتاح الكتابة غلط — راجعه في "ربط جوجل شيت".',
+    bad_key:'السكريبت المنشور لسه بيطلب مفتاح كتابة — الصق آخر نسخة من apps-script.gs واعمل New version.',
     no_token:'الجلسة على السيرفر انتهت — اعمل تسجيل خروج ودخول تاني.',
     no_user:'الحساب ده مش موجود في تبويب Users على الشيت.',
     clear_admin_only:'العملية دي للأدمن فقط.',
@@ -2217,19 +2346,31 @@ async function postToSheet(extra){
 }
 
 document.getElementById('sheetSyncBtn').onclick = async ()=>{
-  const url = document.getElementById('sheetUrl').value.trim();
-  const key = document.getElementById('sheetKey').value.trim();
+  const urlInput = document.getElementById('sheetUrl');
+  const url = urlInput.value.trim();
   const statusEl = document.getElementById('sheetStatus');
-  if(!url){ statusEl.textContent = 'الرجاء لصق رابط الـ Web App أولاً.'; return; }
-  if(!/^https:\/\/script\.google\.com\//.test(url)){
-    statusEl.textContent = 'الرابط ده مش شكل رابط Web App من Apps Script — لازم يبدأ بـ https://script.google.com/'; return;
+  const changed = (url !== (sheetApiUrl || ''));
+  /* تغيير الرابط = الأدمن فقط. أي مستخدم تاني (أو زائر) يقدر يزامن بالرابط الموجود بس. */
+  if(changed){
+    if(urlLockedByConfig()){
+      statusEl.innerHTML = 'الرابط محدد في ملف <b>config.js</b> ومش بيتغيّر من الشاشة — عدّله في الملف وارفعه.';
+      urlInput.value = sheetApiUrl || '';
+      return;
+    }
+    if(!isAdmin()){
+      statusEl.textContent = 'تغيير رابط جوجل شيت للأدمن فقط. تقدر تضغط مزامنة بالرابط الموجود.';
+      urlInput.value = sheetApiUrl || '';
+      return;
+    }
+    if(!url){ statusEl.textContent = 'الرجاء لصق رابط الـ Web App أولاً.'; return; }
+    if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)){
+      statusEl.innerHTML = 'الرابط مش مظبوط. لازم يبقى بالشكل ده بالظبط:<br><code style="direction:ltr;display:inline-block">https://script.google.com/macros/s/XXXX/exec</code><br>(لو بينتهي بـ <b>/dev</b> يبقى غلط — استخدم رابط <b>/exec</b> من Deploy.)';
+      return;
+    }
+    sheetApiUrl = url;
+    try{ localStorage.setItem('rl_sheet_api_url', url); }catch(e){ /* تجاهل */ }
   }
-  sheetApiUrl = url;
-  try{ localStorage.setItem('rl_sheet_api_url', url); }catch(e){ /* تجاهل */ }
-  if(key){
-    WRITE_KEY = key;
-    try{ localStorage.setItem('rl_write_key', key); }catch(e){ /* تجاهل */ }
-  }
+  if(!sheetApiUrl){ statusEl.textContent = 'مفيش رابط محفوظ — الأدمن لازم يحطه مرة واحدة (أو يتحدد في config.js).'; return; }
   await requestPersistentStorage();          // نطلب من المتصفح مايمسحش الإعدادات
   await fetchFromSheet(true);
   await serverLogin();                       // نجدّد التوكن على السيرفر بعد الربط
@@ -2252,7 +2393,28 @@ async function requestPersistentStorage(){
   return false;
 }
 /* سطر حالة صغير في شاشة الربط: متصل بأنهي شيت وهل التخزين دائم */
+/* الرابط جاي من config.js؟ ساعتها مايتغيّرش من الشاشة خالص */
+function urlLockedByConfig(){
+  return !!(RL_CONFIG.SHEET_API_URL && sheetApiUrl === RL_CONFIG.SHEET_API_URL);
+}
+/* قفل/فتح خانة الرابط حسب الحالة والصلاحية */
+function applyUrlLockUI(){
+  const inp = document.getElementById('sheetUrl');
+  const note = document.getElementById('sheetUrlLock');
+  if(!inp || !note) return;
+  if(urlLockedByConfig()){
+    inp.disabled = true;
+    note.innerHTML = '🔒 الرابط محدد في ملف <b>config.js</b> — عدّله في الملف وارفعه لو عايز تغيّره.';
+  }else if(!isAdmin()){
+    inp.disabled = true;
+    note.innerHTML = '🔒 تغيير الرابط <b>للأدمن فقط</b>. تقدر تضغط مزامنة بالرابط الموجود.';
+  }else{
+    inp.disabled = false;
+    note.innerHTML = 'الأدمن بس اللي يقدر يغيّر الرابط. الأفضل تحطه في <b>config.js</b> مرة واحدة عشان يسري على كل الأجهزة من غير إعداد يدوي.';
+  }
+}
 async function renderSheetLinkState(){
+  applyUrlLockUI();
   const el = document.getElementById('sheetLinkState');
   if(!el) return;
   if(!sheetApiUrl){
@@ -2262,9 +2424,9 @@ async function renderSheetLinkState(){
   let persisted = false;
   try{ persisted = navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : false; }catch(e){}
   const tail = sheetApiUrl.length > 46 ? ('…' + sheetApiUrl.slice(-30)) : sheetApiUrl;
-  el.innerHTML = '<b style="color:var(--good)">الجهاز ده مربوط</b> بالشيت: <code style="direction:ltr;display:inline-block">' + tail + '</code>' +
-    '<br>المفتاح ' + (WRITE_KEY ? 'محفوظ ✓' : '<b style="color:var(--bad)">مش محفوظ ✗</b>') +
-    ' • التخزين ' + (persisted ? 'دائم ✓ (الإعدادات مش هتتمسح)' : 'عادي — بيفضل بعد قفل المتصفح، بس المتصفح ممكن يفضّيه لو المساحة قلّت');
+  el.innerHTML = '<b style="color:var(--good)">مربوط</b> بالشيت: <code style="direction:ltr;display:inline-block">' + tail + '</code>' +
+    '<br>المصدر: ' + (urlLockedByConfig() ? '<b>ملف config.js</b> (بيسري على كل الأجهزة)' : 'محفوظ على الجهاز ده') +
+    ' • التخزين ' + (persisted ? 'دائم ✓' : 'عادي — بيفضل بعد قفل المتصفح، بس المتصفح ممكن يفضّيه لو المساحة قلّت');
 }
 
 /* ---------- زرع البيانات في شيت جديد فاضي ---------- */
@@ -2340,7 +2502,6 @@ document.getElementById('clearConfirmBtn').onclick = async ()=>{
 renderSheetLinkState();
 if(sheetApiUrl){
   document.getElementById('sheetUrl').value = sheetApiUrl;
-  if(WRITE_KEY) document.getElementById('sheetKey').value = WRITE_KEY;
   requestPersistentStorage();          // كل تشغيل: نتأكد إن التخزين دائم
   try{
     const cached = localStorage.getItem('rl_dashboard_cache');
@@ -2757,6 +2918,7 @@ function applyAuthUI(){
   if(scoreTile) scoreTile.style.display = isAdmin() ? '' : 'none';   // المعادلة للأدمن فقط
   const clearBtn = document.getElementById('clearDataBtn');
   if(clearBtn) clearBtn.style.display = isAdmin() ? '' : 'none';
+  if(typeof applyUrlLockUI === 'function') applyUrlLockUI();   // قفل خانة الرابط لغير الأدمن
   const shiftTile = document.getElementById('shiftTile');
   if(shiftTile) shiftTile.style.display = isAdmin() ? '' : 'none';   // مواعيد الورديات للأدمن فقط
   const sheetTile = document.querySelector('[data-open="sheetOverlay"]');
@@ -2830,16 +2992,31 @@ function resetUserForm(){
 function renderUsersTable(){
   loadUsers();
   const t = document.getElementById('usersTable');
-  const permCount = u=> u.admin ? 'الكل' : Object.values(u.perms || {}).filter(Boolean).length + ' جدول';
+  /* بنوضّح أسماء الجداول بدل رقم مجرد، وبنحذّر لو مستخدم عادي مالوش أي جدول */
+  const titleOf = id=>{ const c = cardList().find(x=> x.id === id); return c ? c.title : id; };
+  const permCount = u=>{
+    if(u.admin) return '<b>كل الجداول</b>';
+    const ids = Object.keys(u.perms || {}).filter(k=> u.perms[k]);
+    if(!ids.length) return '<span style="color:var(--bad)">مفيش صلاحيات (عرض فقط)</span>';
+    const names = ids.map(titleOf);
+    const shown = names.slice(0, 2).join(' • ');
+    return '<span title="' + names.join(' • ') + '">' + shown + (names.length > 2 ? ' +' + (names.length - 2) : '') + '</span>';
+  };
+  const note = document.getElementById('usersSyncNote');
+  if(note){
+    note.innerHTML = sheetApiUrl
+      ? 'الحسابات بتتزامن مع تبويب <b>Users</b> في جوجل شيت — أي مستخدم تضيفه هنا يقدر يدخل من أي جهاز.'
+      : '<b style="color:var(--warn)">مفيش شيت مربوط</b> — الحسابات محفوظة على الجهاز ده بس ومش هتشتغل على أجهزة تانية. اربط الشيت الأول.';
+  }
   t.innerHTML = `
     <thead><tr><th>المستخدم</th><th>الاسم</th><th>النوع</th><th>الصلاحيات</th><th>الحالة</th><th>آخر دخول</th><th></th></tr></thead>
     <tbody>
       ${users.map(u=> `
-        <tr>
+        <tr${u.active === false ? ' style="opacity:.55"' : ''}>
           <td style="font-weight:800;">${u.u}</td>
           <td>${u.name || '-'}</td>
           <td>${u.admin ? '<span class="badge admin">أدمن</span>' : 'مستخدم'}</td>
-          <td>${permCount(u)}</td>
+          <td style="font-size:11.5px;">${permCount(u)}</td>
           <td>${u.active === false ? '<span class="badge off">موقوف</span>' : '<span class="badge on">مفعّل</span>'}</td>
           <td style="color:var(--text-dim);font-size:11px;">${u.lastLogin ? fmtDateTime(new Date(u.lastLogin)) : '—'}</td>
           <td><div class="u-actions">
@@ -2896,9 +3073,16 @@ async function saveUserFromForm(){
   document.querySelectorAll('#nuPerms input[data-perm]').forEach(cb=>{ if(cb.checked) perms[cb.dataset.perm] = true; });
   if(!uName){ msg.textContent = 'اكتب اسم المستخدم.'; return; }
   if(!/^[A-Za-z0-9._-]{3,20}$/.test(uName)){ msg.textContent = 'اسم المستخدم: حروف إنجليزي وأرقام و . _ - من 3 لـ 20 حرف.'; return; }
+  if(!admin && !Object.keys(perms).length){
+    if(!confirm('المستخدم ده مالوش صلاحية على أي جدول — يعني هيشوف اللوحة بس ومش هيقدر يعدّل حاجة.\n\nتكمّل كده؟')) return;
+  }
   const existing = findUser(uName);
   if(editingUser){
     if(pw && pw.length < 6){ msg.textContent = 'كلمة المرور 6 حروف على الأقل.'; return; }
+    /* مايشيلش الأدمن من نفسه لو هو آخر أدمن مفعّل */
+    if(existing.admin && !admin && users.filter(x=> x.admin && x.active !== false).length <= 1){
+      msg.textContent = 'مينفعش تشيل صفة الأدمن من آخر أدمن في النظام.'; return;
+    }
     existing.name = name || existing.name;
     existing.admin = admin;
     existing.perms = perms;
@@ -2915,7 +3099,8 @@ async function saveUserFromForm(){
   users.push({ u:uName, name:name || uName, salt, hash: await hashPw(pw, salt),
     admin, active:true, perms, created:new Date().toISOString(), lastLogin:'', failed:0, lockUntil:0 });
   saveUsers(true); renderUsersTable(); resetUserForm();
-  msg.className = 'login-msg ok'; msg.textContent = 'تم إضافة المستخدم.';
+  msg.className = 'login-msg ok';
+  msg.innerHTML = 'تم إضافة المستخدم <b>' + uName + '</b>. ابعتله رابط اللوحة واسمه وكلمة المروره — ومحتاجش أي حاجة تانية.';
   showToast('تم إضافة المستخدم ' + uName);
 }
 
