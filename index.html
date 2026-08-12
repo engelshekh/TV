@@ -2242,12 +2242,27 @@ function scriptMissingFeatures(json){
   const missing = need.filter(x=> has.indexOf(x) === -1);
   return missing.length ? ('ناقص: ' + missing.join(' / ')) : '';
 }
+/* لو الرفض سببه الجلسة (توكن ناقص أو حساب موقوف)، نفتح شاشة الدخول تلقائيًا.
+   ده بيحصل تحديدًا لو كنت داخل من قبل تحديث السكريبت — الجلسة المحفوظة على
+   الجهاز مش معاها توكن من السيرفر، فأي حفظ بيترفض لحد ما تدخل من جديد. */
+function handleAuthError(code){
+  if(code !== 'no_token' && code !== 'disabled' && code !== 'no_user') return false;
+  if(session && !session.serverAuth) { /* الجلسة محلية بس */ }
+  showToast(code === 'no_token'
+    ? 'الجلسة على السيرفر انتهت — سجّل دخول من جديد عشان الحفظ يشتغل'
+    : 'حسابك مش مفعّل على الشيت — راجع تبويب Users');
+  if(code === 'no_token'){
+    logout(true);
+    setTimeout(()=> openLoginFor(null), 300);
+  }
+  return true;
+}
 function describeSheetError(code){
   const map = {
     bad_key:'السكريبت المنشور لسه بيطلب مفتاح كتابة — الصق آخر نسخة من apps-script.gs واعمل New version.',
     no_token:'الجلسة على السيرفر انتهت — اعمل تسجيل خروج ودخول تاني.',
     no_user:'الحساب ده مش موجود في تبويب Users على الشيت.',
-    clear_admin_only:'العملية دي للأدمن فقط.',
+    clear_admin_only:'السيرفر شايف حسابك مش أدمن. غالبًا صفة الأدمن مش مسجّلة في تبويب Users على الشيت — افتح "المستخدمون والصلاحيات" واحفظ أي تعديل بسيط عشان الحسابات تترفع من جديد (أو شغّل الدالة repairSheets في Apps Script).',
     badge_admin_only:'وسام الأداء يتحكم فيه الأدمن فقط.',
     users_admin_only:'إدارة المستخدمين للأدمن فقط.',
     need_confirm:'التأكيد ناقص.',
@@ -2284,6 +2299,14 @@ async function serverLogin(pass){
   }
 }
 
+/* أي رد رفض من السيرفر بيمر من هنا عشان نتعامل مع مشاكل الجلسة تلقائيًا */
+function checkSheetResponse(json){
+  if(json && json.ok === false){
+    if(!handleAuthError(json.error)) showToast('السيرفر رفض العملية: ' + describeSheetError(json.error));
+    return false;
+  }
+  return true;
+}
 async function postToSheet(extra){
   if(!sheetApiUrl) return false;
   const allMetrics = [
@@ -2327,7 +2350,23 @@ async function postToSheet(extra){
   };
   try{
     lastSyncAt = Date.now();
-    await fetch(sheetApiUrl, { method:'POST', body: JSON.stringify(payload) });
+    /* مهم: بنقرا رد السكريبت ونتأكد إنه قَبِل فعلاً.
+       قبل كده كنا بنبعت ومانقراش الرد، فلو السيرفر رفض (جلسة منتهية أو
+       مؤشر مش من صلاحيتك) كانت اللوحة تقول "تم الحفظ" والشيت مايتغيرش. */
+    const res = await fetch(sheetApiUrl, { method:'POST', body: JSON.stringify(payload) });
+    let json = null;
+    try{ json = JSON.parse(await res.text()); }catch(e){ json = null; }
+    if(json && json.ok === false){
+      checkSheetResponse(json);
+      return false;
+    }
+    if(json && Array.isArray(json.rejected) && json.rejected.length){
+      /* مؤشرات محددة اترفضت (مش من صلاحيتك) — الباقي اتحفظ */
+      const noPerm = json.rejected.filter(x=> String(x).indexOf(':no_perm') !== -1).length;
+      showToast(noPerm
+        ? ('اتحفظ، بس ' + noPerm + ' مؤشر اترفض لأنه مش من صلاحياتك')
+        : ('اتحفظ، بس فيه ' + json.rejected.length + ' مؤشر اترفض — راجع سجل التغييرات'));
+    }
     /* عشان لما يفتح الصفحة تاني بسرعة (قبل ما يكمل جلب أحدث نسخة من الشيت)
        الكاش المحلي يبقى فيه التاريخ/الشيفت اللي اتحفظوا دلوقتي، مش نسخة قديمة
        من آخر مرة الشيت اتقرا فيها — عشان كدا كان التاريخ بيرجع لقيمته القديمة. */
@@ -2472,8 +2511,10 @@ document.getElementById('clearConfirmBtn').onclick = async ()=>{
   });
   btn.disabled = false;
   if(!res || res.ok !== true){
+    const code = res && res.error;
     msg.className = 'login-msg err';
-    msg.textContent = 'المسح اترفض من السيرفر: ' + describeSheetError(res && res.error);
+    msg.innerHTML = 'المسح اترفض من السيرفر: ' + describeSheetError(code);
+    handleAuthError(code);
     return;
   }
   /* تفضية محلية كمان: القيم + الكاش + صور المقارنة */
