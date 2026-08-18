@@ -1023,12 +1023,12 @@ input[type=text]{
         <input type="date" id="editDateInput" style="width:100%;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;">
       </div>
       <div class="edit-meta-col">
-        <label>أيام بدون حوادث <span id="safeDaysLock" style="font-size:10.5px;color:var(--gold);"></span></label>
-        <input type="number" id="safeDaysInput" min="0" step="1" placeholder="0"
+        <label>تاريخ آخر حادثة <span id="safeDaysLock" style="font-size:10.5px;color:var(--gold);"></span></label>
+        <input type="date" id="safeDaysInput"
                style="width:100%;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;">
       </div>
     </div>
-    <div class="hint" id="safeDaysHint" style="margin:-4px 0 12px;">العدّاد بيزيد يوم بيوم لوحده من الرقم اللي تكتبه، وبيرجع صفر تلقائيًا لو سجّلت حادثة في "عدد الحوادث الوشيكة".</div>
+    <div class="hint" id="safeDaysHint" style="margin:-4px 0 12px;">اكتب تاريخ آخر حادثة فعلية حصلت — العدّاد بيحسب عدد الأيام من التاريخ ده لحد النهاردة أوتوماتيك، وبيرجع يتحدّث لتاريخ النهاردة تلقائيًا لو سجّلت حادثة جديدة في "عدد الحوادث الوشيكة".</div>
     <div style="max-height:52vh;overflow:auto;padding-left:4px;" id="editTableWrap"></div>
     <div class="edit-section-label"><span class="dot"></span>الملاحظات والرسائل</div>
     <textarea class="notes-textarea" id="notesTextarea"></textarea>
@@ -2702,20 +2702,23 @@ function buildEditTable(){
   document.getElementById('editDayNamePreview').textContent = state.meta.dayName;
   document.getElementById('notesTextarea').value = state.tagline;
 
-  /* أيام بدون حوادث: الأدمن بس هو اللي يكتبها */
+  /* تاريخ آخر حادثة: أي حد معاه صلاحية على قسم السلامة يقدر يعدّله (مش الأدمن بس) */
   const sdIn = document.getElementById('safeDaysInput');
   const sdLock = document.getElementById('safeDaysLock');
   const sdHint = document.getElementById('safeDaysHint');
-  const cur = daysWithoutIncidents();
-  sdIn.value = (cur === null) ? '' : cur;
-  sdIn.disabled = !isAdmin();
-  sdIn.title = isAdmin() ? 'الرقم بيزيد يوم بيوم لوحده بعد ما تحفظه' : 'الأدمن بس هو اللي يعدّل العدّاد ده';
-  sdLock.textContent = isAdmin() ? '' : '(أدمن فقط)';
+  const canEditSafe = canEditCard('safety');
+  sdIn.max = state.meta.date;                          // مايتقدرش يختار تاريخ في المستقبل
+  sdIn.value = lastIncidentDateFromCfg();
+  sdIn.disabled = !canEditSafe;
+  sdIn.title = canEditSafe
+    ? 'العدّاد هيحسب عدد الأيام من التاريخ ده لحد النهاردة تلقائيًا'
+    : 'محتاج صلاحية على قسم السلامة عشان تعدّل التاريخ ده';
+  sdLock.textContent = canEditSafe ? '' : '(محتاج صلاحية على السلامة)';
   if(incidentToday()){
-    sdIn.value = 0;
-    sdHint.innerHTML = '<b style="color:var(--bad)">فيه حادثة مسجّلة في "عدد الحوادث الوشيكة" النهاردة — العدّاد بيتصفّر تلقائيًا مع الحفظ.</b>';
+    sdIn.value = state.meta.date;
+    sdHint.innerHTML = '<b style="color:var(--bad)">فيه حادثة مسجّلة في "عدد الحوادث الوشيكة" النهاردة — تاريخ آخر حادثة هيتحدّث لتاريخ النهاردة تلقائيًا مع الحفظ.</b>';
   }else{
-    sdHint.textContent = 'العدّاد بيزيد يوم بيوم لوحده من الرقم اللي تكتبه، وبيرجع صفر تلقائيًا لو سجّلت حادثة في "عدد الحوادث الوشيكة".';
+    sdHint.textContent = 'اكتب تاريخ آخر حادثة فعلية حصلت — العدّاد بيحسب عدد الأيام من التاريخ ده لحد النهاردة أوتوماتيك، وبيرجع يتحدّث لتاريخ النهاردة تلقائيًا لو سجّلت حادثة جديدة في "عدد الحوادث الوشيكة".';
   }
 }
 document.querySelector('[data-open="editOverlay"]').addEventListener('click', buildEditTable);
@@ -2749,19 +2752,27 @@ document.getElementById('saveEditsBtn').onclick = async ()=>{
   savePctLimits();
 
   /* أيام بدون حوادث: لو فيه حادثة النهاردة يتصفّر ويبدأ العد من تاريخها،
-     وغير كدا ناخد الرقم اللي كتبه الأدمن ونثبّته على تاريخ اليوم. */
+     وغير كدا ناخد تاريخ آخر حادثة اللي كتبه صاحب صلاحية السلامة ونثبّته. */
   const pickedDay = document.getElementById('editDateInput').value || state.meta.date;
   const hadIncidentToday = incidentToday();   // نلقطها قبل أي حاجة تانية، عشان نستخدمها تحت كمان
   if(hadIncidentToday){
     safeCfg = { base:0, anchor:pickedDay, ts:Date.now() };
     saveSafeCfg(false);
-  }else if(isAdmin()){
-    const sdRaw = document.getElementById('safeDaysInput').value;
-    const sd = parseInt(String(sdRaw).trim(), 10);
-    if(String(sdRaw).trim() !== '' && !isNaN(sd) && sd >= 0){
-      const shown = daysWithoutIncidents();
-      if(sd !== shown || safeCfg.base === null){        // اتغيّر فعلاً؟ نثبّته من جديد
-        safeCfg = { base:sd, anchor:pickedDay, ts:Date.now() };
+  }else if(canEditCard('safety')){
+    const sdRaw = String(document.getElementById('safeDaysInput').value || '').trim();
+    if(sdRaw === ''){
+      if(safeCfg.base !== null){                       // كان متسجّل قبل كده وبقى فاضي = إلغاء الإعداد
+        safeCfg = { base:null, anchor:'', ts:Date.now() };
+        saveSafeCfg(false);
+      }
+    }else{
+      const gap = daysBetween(sdRaw, pickedDay);
+      if(isNaN(gap)){
+        showToast('تاريخ آخر حادثة غير صحيح');
+      }else if(gap < 0){
+        showToast('تاريخ آخر حادثة لازم يكون قبل أو يساوي تاريخ اليوم المعروض');
+      }else if(sdRaw !== lastIncidentDateFromCfg()){    // اتغيّر فعلاً؟ نثبّته من جديد
+        safeCfg = { base:0, anchor:sdRaw, ts:Date.now() };
         saveSafeCfg(false);
       }
     }
@@ -3341,13 +3352,16 @@ function factoryScore(){
   return Math.max(0, Math.min(100, Math.round((got/max)*100)));
 }
 /* ================== أيام بدون حوادث ==================
-   الرقم بيحدّده الأدمن مرة واحدة، وبعدها بيزيد يوم بيوم لوحده:
-       المعروض = الرقم المكتوب + عدد الأيام اللي فاتت من تاريخ كتابته
+   صاحب صلاحية قسم السلامة بيكتب "تاريخ آخر حادثة فعلية"، وبعدها العدّاد
+   بيحسب عدد الأيام من التاريخ ده لحد النهاردة أوتوماتيك كل يوم:
+       المعروض = عدد الأيام بين تاريخ آخر حادثة وتاريخ النهاردة
    ولو سجّلنا حادثة في "عدد الحوادث الوشيكة" (الفعلي أكبر من صفر)، العدّاد
-   بيظهر صفر فورًا وبيتصفّر رسميًا مع الحفظ (يبدأ العد من تاريخ الحادثة).
-   الإعداد بيتخزن محليًا وبيتزامن مع تبويب Meta عشان كل الشاشات تشوف نفس الرقم. */
+   بيظهر صفر فورًا وبيتصفّر رسميًا مع الحفظ (يبدأ العد من تاريخ الحادثة دي)،
+   وحقل "عدد الحوادث الوشيكة" نفسه بيرجع صفر تلقائيًا مع نفس الحفظة عشان
+   مايفضلش قاعد ويتقرا غلط تاني في الأيام الجاية.
+   الإعداد بيتخزن محليًا وبيتزامن مع تبويب Meta عشان كل الشاشات تشوف نفس التاريخ. */
 var SAFE_KEY = 'rl_safe_days_v1';
-var safeCfg = { base:null, anchor:'', ts:0 };    // base = الرقم المكتوب، anchor = تاريخ كتابته، ts = وقت آخر تعديل
+var safeCfg = { base:null, anchor:'', ts:0 };    // anchor = تاريخ آخر حادثة فعلية (اللي بيتكتب من لوحة التحكم دلوقتي)، base بيفضل صفر مع أي تعديل جديد ومحفوظ بس للتوافق مع إعدادات قديمة كانت بالنظام الرقمي القديم، ts = وقت آخر تعديل
 function loadSafeCfg(){
   try{
     const raw = JSON.parse(localStorage.getItem(SAFE_KEY) || 'null');
@@ -3364,6 +3378,15 @@ function daysBetween(fromDate, toDate){
   if(isNaN(a.getTime()) || isNaN(b.getTime())) return NaN;
   return Math.round((b - a) / 86400000);
 }
+/* بتحوّل الإعداد المخزّن (base + anchor) لتاريخ واحد يمثّل "تاريخ آخر حادثة" —
+   مفيدة لو كان فيه إعداد قديم اتسجّل بالطريقة القديمة (رقم أيام) قبل التعديل ده. */
+function lastIncidentDateFromCfg(){
+  if(safeCfg.base === null || !safeCfg.anchor) return '';
+  const d = new Date(safeCfg.anchor + 'T00:00:00');
+  if(isNaN(d.getTime())) return '';
+  d.setDate(d.getDate() - Math.round(safeCfg.base || 0));
+  return todayStr(d);
+}
 /* هل فيه حادثة مسجّلة في اليوم المعروض؟ */
 function incidentToday(){
   const inc = allMetricsFlat().find(m=> m.id === 's1');   // عدد الحوادث الوشيكة
@@ -3379,7 +3402,7 @@ function daysWithoutIncidents(){
     const gap = daysBetween(safeCfg.anchor, state.meta.date);
     if(!isNaN(gap)) return Math.max(0, Math.round(safeCfg.base) + Math.max(0, gap));
   }
-  /* لسه الأدمن مكتبش رقم؟ نحسبه من القراءات المحفوظة زي الأول */
+  /* لسه محدّش سجّل تاريخ آخر حادثة؟ نحسبه من القراءات المحفوظة زي الأول */
   const snaps = loadSnaps();
   const keys = sortedSnapKeys(snaps).reverse();
   const seen = new Set([state.meta.date]);
