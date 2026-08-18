@@ -2751,7 +2751,8 @@ document.getElementById('saveEditsBtn').onclick = async ()=>{
   /* أيام بدون حوادث: لو فيه حادثة النهاردة يتصفّر ويبدأ العد من تاريخها،
      وغير كدا ناخد الرقم اللي كتبه الأدمن ونثبّته على تاريخ اليوم. */
   const pickedDay = document.getElementById('editDateInput').value || state.meta.date;
-  if(incidentToday()){
+  const hadIncidentToday = incidentToday();   // نلقطها قبل أي حاجة تانية، عشان نستخدمها تحت كمان
+  if(hadIncidentToday){
     safeCfg = { base:0, anchor:pickedDay, ts:Date.now() };
     saveSafeCfg(false);
   }else if(isAdmin()){
@@ -2771,11 +2772,19 @@ document.getElementById('saveEditsBtn').onclick = async ()=>{
   const notesEl = document.getElementById('notesTextarea');
   if(!notesEl.disabled) state.tagline = notesEl.value;
   const auditEntries = diffAndLog(before);            // مين غيّر إيه
+  /* دلوقتي بعد ما اتسجّلت الحادثة في العدّاد وفي السجل، نصفّر "عدد الحوادث
+     الوشيكة" نفسه. من غير الخطوة دي كان الرقم بيفضل قاعد في الحقل، فكل يوم
+     جاي (وكل مرة تتفتح لوحة التحكم) كان بيتقرا وكأنه "حادثة جديدة النهاردة"
+     من تاني، فيرجع يصفّر العدّاد لوحده ويمنع أي تعديل يدوي منك. */
+  if(hadIncidentToday){
+    const incMetric = allMetrics.find(x=> x.id === 's1');
+    if(incMetric) incMetric.actual = '0';
+  }
   const safeAfter = daysWithoutIncidents();
   /* بنسجّل بس لو الإعداد نفسه اتغيّر — مش لما الرقم يزيد لوحده بمرور الأيام */
   if(JSON.stringify(safeCfg) !== safeCfgBefore){
     auditEntries.push({ t:new Date().toISOString(), u:(session ? (session.name || session.u) : 'غير معروف'),
-      metric:'أيام بدون حوادث', field: incidentToday() ? 'تصفير بسبب حادثة' : 'تعديل العدّاد',
+      metric:'أيام بدون حوادث', field: hadIncidentToday ? 'تصفير بسبب حادثة' : 'تعديل العدّاد',
       from:(safeBefore === null ? '—' : String(safeBefore)), to:(safeAfter === null ? '—' : String(safeAfter)),
       date:state.meta.date, shift:state.meta.shift });
     saveAudit(loadAudit().concat(auditEntries.slice(-1)));
