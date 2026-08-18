@@ -2714,12 +2714,7 @@ function buildEditTable(){
     ? 'العدّاد هيحسب عدد الأيام من التاريخ ده لحد النهاردة تلقائيًا'
     : 'محتاج صلاحية على قسم السلامة عشان تعدّل التاريخ ده';
   sdLock.textContent = canEditSafe ? '' : '(محتاج صلاحية على السلامة)';
-  if(incidentToday()){
-    sdIn.value = state.meta.date;
-    sdHint.innerHTML = '<b style="color:var(--bad)">فيه حادثة مسجّلة في "عدد الحوادث الوشيكة" النهاردة — تاريخ آخر حادثة هيتحدّث لتاريخ النهاردة تلقائيًا مع الحفظ.</b>';
-  }else{
-    sdHint.textContent = 'اكتب تاريخ آخر حادثة فعلية حصلت — العدّاد بيحسب عدد الأيام من التاريخ ده لحد النهاردة أوتوماتيك، وبيرجع يتحدّث لتاريخ النهاردة تلقائيًا لو سجّلت حادثة جديدة في "عدد الحوادث الوشيكة".';
-  }
+  sdHint.textContent = 'اكتب تاريخ آخر حادثة فعلية حصلت — العدّاد بيحسب عدد الأيام من التاريخ ده لحد النهاردة أوتوماتيك. الحقل ده منفصل تمامًا عن "عدد الحوادث الوشيكة" وملوش أي علاقة بيه.';
 }
 document.querySelector('[data-open="editOverlay"]').addEventListener('click', buildEditTable);
 
@@ -2751,14 +2746,11 @@ document.getElementById('saveEditsBtn').onclick = async ()=>{
   });
   savePctLimits();
 
-  /* أيام بدون حوادث: لو فيه حادثة النهاردة يتصفّر ويبدأ العد من تاريخها،
-     وغير كدا ناخد تاريخ آخر حادثة اللي كتبه صاحب صلاحية السلامة ونثبّته. */
+  /* أيام بدون حوادث: بيعتمد بس على "تاريخ آخر حادثة" اللي بيكتبه صاحب صلاحية
+     السلامة — مالوش أي علاقة بقيمة "عدد الحوادث الوشيكة" (s1.actual)، ده حقل
+     رقمي عادي بيتعدّل ويتحفظ زي أي مؤشر تاني من غير ما يأثر على العدّاد. */
   const pickedDay = document.getElementById('editDateInput').value || state.meta.date;
-  const hadIncidentToday = incidentToday();   // نلقطها قبل أي حاجة تانية، عشان نستخدمها تحت كمان
-  if(hadIncidentToday){
-    safeCfg = { base:0, anchor:pickedDay, ts:Date.now() };
-    saveSafeCfg(false);
-  }else if(canEditCard('safety')){
+  if(canEditCard('safety')){
     const sdRaw = String(document.getElementById('safeDaysInput').value || '').trim();
     if(sdRaw === ''){
       if(safeCfg.base !== null){                       // كان متسجّل قبل كده وبقى فاضي = إلغاء الإعداد
@@ -2783,19 +2775,14 @@ document.getElementById('saveEditsBtn').onclick = async ()=>{
   const notesEl = document.getElementById('notesTextarea');
   if(!notesEl.disabled) state.tagline = notesEl.value;
   const auditEntries = diffAndLog(before);            // مين غيّر إيه
-  /* دلوقتي بعد ما اتسجّلت الحادثة في العدّاد وفي السجل، نصفّر "عدد الحوادث
-     الوشيكة" نفسه. من غير الخطوة دي كان الرقم بيفضل قاعد في الحقل، فكل يوم
-     جاي (وكل مرة تتفتح لوحة التحكم) كان بيتقرا وكأنه "حادثة جديدة النهاردة"
-     من تاني، فيرجع يصفّر العدّاد لوحده ويمنع أي تعديل يدوي منك. */
-  if(hadIncidentToday){
-    const incMetric = allMetrics.find(x=> x.id === 's1');
-    if(incMetric) incMetric.actual = '0';
-  }
+  /* "عدد الحوادث الوشيكة" (s1.actual) بقى حقل رقمي عادي زي أي مؤشر تاني —
+     مفيش أي تصفير أوتوماتيك ليه هنا، وقيمته مالهاش أي تأثير على عدّاد
+     "أيام بدون حوادث" اللي بيعتمد بس على "تاريخ آخر حادثة" (safeCfg). */
   const safeAfter = daysWithoutIncidents();
   /* بنسجّل بس لو الإعداد نفسه اتغيّر — مش لما الرقم يزيد لوحده بمرور الأيام */
   if(JSON.stringify(safeCfg) !== safeCfgBefore){
     auditEntries.push({ t:new Date().toISOString(), u:(session ? (session.name || session.u) : 'غير معروف'),
-      metric:'أيام بدون حوادث', field: hadIncidentToday ? 'تصفير بسبب حادثة' : 'تعديل العدّاد',
+      metric:'أيام بدون حوادث', field:'تعديل العدّاد',
       from:(safeBefore === null ? '—' : String(safeBefore)), to:(safeAfter === null ? '—' : String(safeAfter)),
       date:state.meta.date, shift:state.meta.shift });
     saveAudit(loadAudit().concat(auditEntries.slice(-1)));
@@ -3387,17 +3374,9 @@ function lastIncidentDateFromCfg(){
   d.setDate(d.getDate() - Math.round(safeCfg.base || 0));
   return todayStr(d);
 }
-/* هل فيه حادثة مسجّلة في اليوم المعروض؟ */
-function incidentToday(){
-  const inc = allMetricsFlat().find(m=> m.id === 's1');   // عدد الحوادث الوشيكة
-  if(!inc) return false;
-  const v = safeNum(inc.actual);
-  return !isNaN(v) && v > 0;
-}
 function daysWithoutIncidents(){
-  const inc = allMetricsFlat().find(m=> m.id === 's1');
-  if(!inc) return null;
-  if(incidentToday()) return 0;                          // حادثة النهاردة = العدّاد صفر
+  /* بيعتمد بس على "تاريخ آخر حادثة" (safeCfg.anchor) — مفيش أي اعتماد على
+     قيمة "عدد الحوادث الوشيكة" (s1.actual)، الاتنين منفصلين تمامًا. */
   if(safeCfg.base !== null && safeCfg.anchor){
     const gap = daysBetween(safeCfg.anchor, state.meta.date);
     if(!isNaN(gap)) return Math.max(0, Math.round(safeCfg.base) + Math.max(0, gap));
